@@ -1,6 +1,80 @@
-.guaca-container {}
+$darkcol: #223;
+$lightcol: #fee;
+$radius: 6px;
 
-.guaca-histo {}
+button {
+  font-weight: bold;
+  color: $darkcol;
+  background: $lightcol;
+  border: solid 2px $darkcol;
+  border-radius: $radius;
+
+  &:hover {
+    color: $lightcol;
+    background: $darkcol;
+    border: solid 2px $lightcol;
+  }
+  &:active {
+    color: $darkcol;
+    background: $lightcol;
+  }
+}
+
+radio {
+  /* TODO */
+}
+
+.guaca-container {
+  display: flex;
+  gap: 15px;
+  align-items: flex-start;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.guaca-block {
+  width: 40%;
+  min-width: 250px;
+  max-width: 380px;
+  padding: 2px;
+  /* TEST */
+  background: pink;
+}
+
+.guaca-navbar {
+  text-align: center;
+  padding: 3px;
+}
+
+.guaca-histo {
+  .guaca-list {
+    background: $lightcol;
+    border: solid 2px $darkcol;
+    border-radius: $radius;
+  
+    button {
+      border-radius: 15px;
+    }
+  }
+  
+  .guaca-line {
+    border-top: solid 1px $darkcol;
+    padding: 1px;
+  }
+
+  .guaca-date {
+    font-style: italic;
+    font-size: 0.8rem;
+  }
+
+  .guaca-result {
+    display: inline-block;
+    width: calc(100% - 32px);
+    padding: 1px;
+    box-sizing: border-box;
+  }
+}
 
 .guaca-throwers {
+  /* */
 }
