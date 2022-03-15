@@ -8,3 +8,8 @@ authors = ["othelarian <le.maitre.killian@gmail.com>"]
 console_log = "0.2.0"
 log = "0.4.14"
 yew = "0.19.3"
+yewdux = "0.7.0"
+yewdux-functional = "0.1.0"
+
+#[dependencies.web-sys]
+#version = "0.3.55"
