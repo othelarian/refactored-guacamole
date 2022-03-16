@@ -42,8 +42,10 @@ radio {
 }
 
 .guaca-navbar {
-  text-align: center;
   padding: 3px;
+  display: flex;
+  justify-content: center;
+  gap: 3px;
 }
 
 .guaca-histo {
