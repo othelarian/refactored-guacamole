@@ -1,57 +1,48 @@
 use yew::prelude::*;
-use yewdux::prelude::*;
+use yew_agent::use_bridge;
 
 mod histo;
-use histo::{Historic, HistoStore};
-
 mod throwers;
-use throwers::{ThrowerConfig, ThrowerList, ThrowerStore};
+mod store;
 
+use histo::Historic;
+use throwers::ThrowerList;
+use store::{Store, StoreInput};
 
-struct App {
-  histo_dispatch: Dispatch<BasicStore<HistoStore>>,
-  thrower_dispatch: Dispatch<BasicStore<ThrowerStore>>
-}
-
-impl Component for App {
-  type Message = ();
-  type Properties = ();
-
-  fn create(_ctx: &Context<Self>) -> Self {
-    Self {
-      histo_dispatch: Dispatch::default(),
-      thrower_dispatch: Dispatch::default()
-    }
-  }
-
-  fn view(&self, _ctx: &Context<Self>) -> Html {
-    // throwers callbacks
-    let thrower_add_cb = self.thrower_dispatch.reduce_callback(|s| {
-      s.configs.push(ThrowerConfig::default())
-    });
-    let thrower_clear_cb = self.thrower_dispatch.reduce_callback(|s|
-      s.configs.clear()
-    );
-    // history callback
-    let histo_clear_cb = self.histo_dispatch.reduce_callback(|s| s.history.clear() );
-    // Render everything
-    html! {
-      <div class="guaca-container">
-        <div class="guaca-block guaca-throwers">
-          <ThrowerList />
-          <div class="guaca-navbar">
-            <button onclick={thrower_clear_cb}>{"Tout supprimer"}</button>
-            <button onclick={thrower_add_cb}>{"Ajouter"}</button>
-          </div>
-        </div>
-        <div class="guaca-block guaca-histo">
-          <div class="guaca-navbar">
-            <button onclick={histo_clear_cb}>{"tout effacer"}</button>
-          </div>
-          <div class="guaca-list"><Historic /></div>
+#[function_component(App)]
+fn app() -> Html {
+  // preparation
+  let store = use_bridge::<Store, _>(|_| ());
+  // callbacks
+  let histo_clear_cb = {
+    let store = store.clone();
+    Callback::from(move |_| store.send(StoreInput::ClearHistory))
+  };
+  let thrower_add_cb = {
+    let store = store.clone();
+    Callback::from(move |_| store.send(StoreInput::ThrowAdd))
+  };
+  let thrower_clear_cb = {
+    let store = store.clone();
+    Callback::from(move |_| store.send(StoreInput::ClearThrowers))
+  };
+  // rendering
+  html! {
+    <div class="guaca-container">
+      <div class="guaca-block guaca-throwers">
+        <ThrowerList />
+        <div class="guaca-navbar">
+          <button onclick={thrower_clear_cb}>{"Tout supprimer"}</button>
+          <button onclick={thrower_add_cb}>{"Ajouter"}</button>
         </div>
       </div>
-    }
+      <div class="guaca-block guaca-histo">
+        <div class="guaca-navbar">
+          <button onclick={histo_clear_cb}>{"Tout effacer"}</button>
+        </div>
+        <div class="guaca-list"><Historic /></div>
+      </div>
+    </div>
   }
 }
 

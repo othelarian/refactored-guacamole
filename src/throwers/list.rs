@@ -1,26 +1,19 @@
-use log::info;
-use std::rc::Rc;
 use yew::prelude::*;
-use yewdux::prelude::*;
+use yew_agent::{Bridge, Bridged};
 
-use super::config::ThrowerConfig;
-
-#[derive(Clone, Default)]
-pub struct ThrowerStore {
-  pub configs: Vec<ThrowerConfig>
-}
+use crate::store::{Store, StoreInput, StoreOutput};
+use super::Thrower;
 
 pub enum ThrowerListMsg {
-  RollAll,
-  RollSelected,
-  SelectToggle,
-  State(Rc<ThrowerStore>)
+  NoOp,
+  RefreshList(usize),
+  ThrowAll,
+  ThrowSelected
 }
 
 pub struct ThrowerList {
-  dispatch: Dispatch<BasicStore<ThrowerStore>>,
-  state: Rc<ThrowerStore>,
-  
+  config_len: usize,
+  store: Box<dyn Bridge<Store>>,
   ref_selbox: NodeRef,
   ref_selroll: NodeRef
 }
@@ -30,12 +23,17 @@ impl Component for ThrowerList {
   type Properties = ();
 
   fn create(ctx: &Context<Self>) -> Self {
+    let mut store = Store::bridge(ctx.link().callback(|res| match res {
+      StoreOutput::UpdateThrowerList(len) => ThrowerListMsg::RefreshList(len),
+      _ => ThrowerListMsg::NoOp
+    }));
+    store.send(StoreInput::GetLength);
     //
     // TODO: récupération probable de Location ici
     //
     Self {
-      dispatch: Dispatch::bridge_state(ctx.link().callback(ThrowerListMsg::State)),
-      state: Default::default(),
+      config_len: 0,
+      store,
       ref_selbox: NodeRef::default(),
       ref_selroll: NodeRef::default()
     }
@@ -55,84 +53,52 @@ impl Component for ThrowerList {
 
   fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
     match msg {
-      ThrowerListMsg::RollAll => {
-        //
-        // TODO
-        //
-        false
-      }
-      ThrowerListMsg::RollSelected => {
-        //
-        // TODO
-        //
-        false
-      }
-      ThrowerListMsg::SelectToggle => {
-        //
-        // TODO
-        //
-        false
-      }
-      ThrowerListMsg::State(state) => {
-        //
-        info!("set state");
-        //
-        let output = self.state.configs.len() != state.configs.len();
-        self.state = state;
-        output
-      }
+      ThrowerListMsg::NoOp => false,
+      ThrowerListMsg::RefreshList(len) =>
+        { self.config_len = len; true }
+      ThrowerListMsg::ThrowAll =>
+        { self.store.send(StoreInput::ThrowAll); false }
+      ThrowerListMsg::ThrowSelected =>
+        { self.store.send(StoreInput::ThrowSelected); false }
     }
   }
 
   fn view(&self, ctx: &Context<Self>) -> Html {
-    // throwers
-    let throwers: Html = self.state.configs.iter()
-      .enumerate()
-      .map(|(id, config)| {
-        //
-        //
-        html! {
-          //
-          <div>{"a thrower!"}</div>
-          //
-        }
-      })
-      .collect();
-    // states
+    // preparation
+    let throwers: Html = (0..self.config_len).map(|id| {
+      html! { <Thrower index={id} /> }
+    }).collect();
+    // styles
     //
-    // TODO: etat pour la checkbox
-    //
-    // TODO: display_selroll doit être conditionné
+    // TODO
     let display_selroll = "visibility:visible";
     //
-    //
     // callbacks
-    let selector_cb = ctx.link().callback(|_| ThrowerListMsg::SelectToggle);
-    let roll_all_cb = ctx.link().callback(|_| ThrowerListMsg::RollAll);
-    let roll_selected_cb = ctx.link().callback(|_| ThrowerListMsg::RollSelected);
+    let roll_all_cb = ctx.link().callback(|_| ThrowerListMsg::ThrowAll);
+    let roll_selected_cb = ctx.link().callback(|_| ThrowerListMsg::ThrowSelected);
     // rendering
     html! {
       <div>
         {throwers}
-        if (self.state.configs.len() > 1) {
-          <div class="guaca-thrower-c1">
+        if self.config_len > 1 {
+          <div class="guaca-controls">
             //
-            // TODO: checkbox avec 3 états
+            // TODO: checkbox 3 states
             //
-            <label onclick={selector_cb}>{"(C)"}</label>
+            <label></label>
             //
           </div>
-          <div class="guaca-thrower-c2">
+          <div class="guaca-selector">
             <button
               style={display_selroll}
               ref={self.ref_selroll.clone()}
               onclick={roll_selected_cb}
             >{"Lancer la sélection"}</button>
           </div>
-          <div class="guaca-thrower-c3">
+          <div class="guaca-result">
             <button onclick={roll_all_cb}>{"Tout lancer"}</button>
           </div>
-        }
+        } 
       </div>
     }
   }

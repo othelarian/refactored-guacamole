@@ -1,6 +1,8 @@
+use std::rc::Rc;
 use yew::prelude::*;
-use yewdux::prelude::*;
-use yewdux_functional::*;
+use yew_agent::use_bridge;
+
+use crate::store::StoreOutput;
 
 #[derive(Clone)]
 pub struct HistoResult {
@@ -32,35 +34,53 @@ impl HistoResult {
   }
 }
 
-#[derive(Clone, Default)]
-pub struct HistoStore {
-  pub history: Vec<HistoResult>
+pub enum HistoAction {
+  Add(HistoResult),
+  Clear,
+  Remove(usize)
+}
+
+#[derive(Default)]
+struct HistoState {
+  history: Vec<HistoResult>
+}
+
+impl Reducible for HistoState {
+  type Action = HistoAction;
+
+  fn reduce(self: Rc<Self>, action: Self::Action) -> Rc<Self> {
+    let mut history = self.history.clone();
+    match action {
+      HistoAction::Add(new_res) => history.push(new_res),
+      HistoAction::Clear => history.clear(),
+      HistoAction::Remove(id) => { history.remove(id); },
+    };
+    Self { history }.into()
+  }
 }
 
 #[function_component(Historic)]
 pub fn historic() -> Html {
-  let store = use_store::<BasicStore<HistoStore>>();
-  match store.state() {
-    None => html! {<></>},
-    Some(state) => {
-      let history: Html = state.history.iter()
-        .enumerate()
-        .map(|(id, res)| {
-          let delete_res_cb = store.dispatch().reduce_callback(move |s| {
-            s.history.remove(id)
-          });
-          html! {
-            //
-            // TODO: un petit travail de theming reste à fare ici
-            //
-            <div class="">
-              {res.view()}
-              <button onclick={delete_res_cb}>{"x"}</button>
-            </div>
-          }
-        })
-        .collect();
-      html! { <div>{history}</div> }
+  let reducer = use_reducer(HistoState::default);
+  {
+    let reducer = reducer.clone();
+    let bridge = use_bridge::<crate::store::Store, _>(move |out| match out {
+      StoreOutput::HistoryAction(action) => { reducer.dispatch(action); }
+      _ => ()
+    });
+    bridge.send(crate::store::StoreInput::RegisterHistory);
+  };
+  let history: Html = reducer.history.iter().rev().enumerate().map(|(id, res)| {
+    let delete_res_cb = {
+      let reducer = reducer.clone();
+      Callback::from(move |_| reducer.dispatch(HistoAction::Remove(id)))
+    };
+    html! {
+      <div>
+        {res.view()}
+        <button onclick={delete_res_cb}>{"x"}</button>
+      </div>
     }
-  }
+  }).collect();
+  html! {history}
 }

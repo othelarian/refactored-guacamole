@@ -1,3 +1,5 @@
+use log::info;
+
 #[derive(Clone)]
 pub enum DiceMethod {
   Each,
@@ -31,6 +33,8 @@ impl ThrowerConfig {
   pub fn roll(&self) {
     //
     // TODO
+    //
+    info!("rolling!");
     //
   }
 }

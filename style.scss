@@ -20,10 +20,6 @@ button {
   }
 }
 
-radio {
-  /* TODO */
-}
-
 .guaca-container {
   display: flex;
   gap: 15px;
@@ -78,5 +74,58 @@ radio {
 }
 
 .guaca-throwers {
-  /* */
+  .guaca-controls, .guaca-thrower, .guaca-selector, .guaca-result {
+    display: inline-block;
+    box-sizing: border-box;
+  }
+
+  .guaca-controls {
+    width:25px;
+    margin-right: 5px;
+  }
+
+  .guaca-result {
+    width: 55px;
+    margin-left: 5px;
+  }
+
+  .guaca-selector {
+    text-align: center;
+
+    & > button {
+      width: 90px;
+    }
+  }
+
+  .guaca-thrower, .guaca-selector {
+    width: calc(100% - 90px);
+  }
+
+  .guaca-thrower {
+    border: solid 2px $darkcol;
+    border-radius: 12px;
+    background-color: $lightcol;
+    box-sizing: border-box;
+    padding: 0;
+
+    .guaca-title {
+      width: calc(100% - 4px);
+      font-weight: bold;
+      text-align: center;
+      border: none;
+      border-radius: 12px 12px 0 0;
+    }
+    .guaca-title:focus-visible {
+      outline: none;
+    }
+  }
+
+  .guaca-line {
+    margin-bottom: 10px;
+
+    .guaca-result > button {
+      width: 100%;
+      padding: 10px 0;
+    }
+  }
 }
