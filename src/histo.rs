@@ -8,17 +8,17 @@ use crate::store::StoreOutput;
 pub struct HistoResult {
   //
   //
-  test1: usize
+  pub total: usize
   //
 }
 
 impl HistoResult {
-  pub fn create(test1: usize) -> Self {
+  pub fn create(total: usize) -> Self {
     //
     //
     HistoResult {
       //
-      test1
+      total 
       //
     }
   }
@@ -28,7 +28,7 @@ impl HistoResult {
     //
     html! {
       <div>
-        {"histo: "}{self.test1}
+        {"histo: "}{self.total}
       </div>
     }
   }
@@ -82,5 +82,18 @@ pub fn historic() -> Html {
       </div>
     }
   }).collect();
-  html! {history}
+  let histo_clear_cb = {
+    let reducer = reducer.clone();
+    Callback::from(move |_| reducer.dispatch(HistoAction::Clear))
+  };
+  html! {
+    <>
+      if reducer.history.len() > 0 {
+        <div class="guaca-navbar">
+          <button onclick={histo_clear_cb}>{"Tout effacer"}</button>
+        </div>
+      }
+      <div class="guaca-list">{history}</div>
+    </>
+  }
 }

@@ -318,6 +318,7 @@ dependencies = [
  "getrandom",
  "log",
  "rand",
+ "web-sys",
  "yew",
  "yew-agent",
 ]

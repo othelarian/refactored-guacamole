@@ -7,17 +7,21 @@ mod store;
 
 use histo::Historic;
 use throwers::ThrowerList;
-use store::{Store, StoreInput};
+use store::{Store, StoreInput, StoreOutput};
 
 #[function_component(App)]
 fn app() -> Html {
   // preparation
-  let store = use_bridge::<Store, _>(|_| ());
-  // callbacks
-  let histo_clear_cb = {
-    let store = store.clone();
-    Callback::from(move |_| store.send(StoreInput::ClearHistory))
+  let config = use_state(|| false);
+  let store = {
+    let config = config.clone();
+    use_bridge::<Store, _>(move |out| match out {
+      StoreOutput::ConfigState(next_state) => config.set(next_state),
+      _ => ()
+    })
   };
+  store.send(StoreInput::GetConfig);
+  // callbacks
   let thrower_add_cb = {
     let store = store.clone();
     Callback::from(move |_| store.send(StoreInput::ThrowAdd))
@@ -25,6 +29,10 @@ fn app() -> Html {
   let thrower_clear_cb = {
     let store = store.clone();
     Callback::from(move |_| store.send(StoreInput::ClearThrowers))
+  };
+  let config_cb = {
+    let store = store.clone();
+    Callback::from(move |_| store.send(StoreInput::ToggleConfig))
   };
   // rendering
   html! {
@@ -37,10 +45,17 @@ fn app() -> Html {
         </div>
       </div>
       <div class="guaca-block guaca-histo">
-        <div class="guaca-navbar">
-          <button onclick={histo_clear_cb}>{"Tout effacer"}</button>
+        <div class="guaca-config">
+          <span>{"Config. : url"}</span>
+          <label class="switchy">
+            <input type="checkbox" onclick={config_cb} checked={*config} />
+            <span></span>
+          </label>
+          <span>{"local storage"}</span>
         </div>
-        <div class="guaca-list"><Historic /></div>
+        <hr />
+        <h3>{"Historique"}</h3>
+        <Historic />
       </div>
     </div>
   }

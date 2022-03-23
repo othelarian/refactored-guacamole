@@ -1,16 +1,19 @@
 use log::info;
 use std::rc::Rc;
+use web_sys::Element;
 use yew::prelude::*;
 use yew_agent::{Bridge, Bridged};
 
 use crate::store::{Store, StoreInput, StoreOutput};
+use super::config::{DiceMethod, DiceType};
 use super::ThrowerConfig;
 
 pub enum ThrowerMsg {
   Delete,
   InitConfig(Rc<Vec<ThrowerConfig>>),
   NoOp,
-  Roll
+  Roll,
+  ToggleMethod
 }
 
 #[derive(Properties, PartialEq)]
@@ -53,21 +56,50 @@ impl Component for Thrower {
         //
         // TODO
         //
+        let mut new_config = (*self.config).get(ctx.props().index).unwrap();
+        //
+        let res = new_config.roll();
+        //
+        //
+        //
+        self.ref_result.cast::<Element>().unwrap()
+          .set_inner_html(&res.total.to_string());
+        //
+        false
+      }
+      ThrowerMsg::ToggleMethod => {
+        let mut new_config = (*self.config).get(ctx.props().index).unwrap().clone();
+        new_config.method = match new_config.method {
+          DiceMethod::Each => DiceMethod::Total,
+          DiceMethod::Total => DiceMethod::Each
+        };
+        self.store.send(StoreInput::UpdateConfig(ctx.props().index, new_config));
         false
       }
     }
   }
 
   fn view(&self, ctx: &Context<Self>) -> Html {
-    //
-    info!("rendering thrower");
-    //
     let index = ctx.props().index;
+    //
+    info!("rendering thrower {}", index);
+    //
     let config = match self.config.get(index) {
       Some(config) => config.clone(),
       None => self.config.get(0).unwrap().clone()
     };
+    let len = self.config.len();
     //
+    // details
+    //
+    let method_data = ThrowerConfig::method(&config.method);
+    //
+    let placeholder_data = config.placeholder();
+    //
+    let result_data = match config.result {
+      Some(result) => result.to_string(),
+      None => String::from("Roll")
+    };
     //
     // callbacks
     //
@@ -75,6 +107,7 @@ impl Component for Thrower {
     //
     let roll_cb = ctx.link().callback(|_| Self::Message::Roll);
     //
+    let toggle_method_cb = ctx.link().callback(|_| Self::Message::ToggleMethod);
     //
     // rendering thrower
     html! {
@@ -83,28 +116,67 @@ impl Component for Thrower {
           //
           // TODO: le bouton pour la sélection partielle
           //
-          <button onclick={delete_thrower_cb}>{"-"}</button>
+          <label class="checky">
+            <input type="checkbox" />
+            <span></span>
+          </label>
+          //
+          <button onclick={delete_thrower_cb}>{"x"}</button>
         </div>
         <div class="guaca-thrower">
           //
-          // TODO: refaire le setting du dnd diceroller
-          <input class="guaca-title" placeholder="(title)" />
+          // TODO: connecter l'input à un onchange
           //
+          <input
+            class="guaca-title"
+            placeholder={placeholder_data}
+            text={config.name} />
           <br />
           //
-          <input class="guaca-number" type="number" />
+          // TODO: finir le theming du lanceur
+          //
+          // TODO: finir les inputs du lanceur
+          //
+          <input class="guaca-number" type="number" min="1" />
           //
           {"(dice type"}
           //
+          <input class="guaca-number guaca-custom" type="number" min="2" />
+          //
+          {" "}
+          //
           <input class="guaca-number" type="number" />
           //
-          <button>{"(tog tot)"}</button>
+          <button onclick={toggle_method_cb}>{method_data}</button>
           //
         </div>
         <div class="guaca-result">
-          <button ref={self.ref_result.clone()} onclick={roll_cb}>{"---"}</button>
+          <button ref={self.ref_result.clone()} onclick={roll_cb}>{result_data}</button>
         </div>
       </div>
+    }
+  }
+}
+
+impl Thrower {
+  fn type_selector(&self, ctx: &Context<Self>) -> Html {
+    //
+    let select_type_cb = ctx.link().callback(|_| {
+      //
+      // TODO
+      info!("dice selection");
+      //
+      ThrowerMsg::NoOp
+      //
+    });
+    //
+    //
+    html! {
+      <select onchange={select_type_cb}>
+        //
+        //
+        //
+      </select>
     }
   }
 }
