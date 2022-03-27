@@ -1,21 +1,33 @@
 use yew::prelude::*;
+use web_sys::HtmlInputElement;
 use yew_agent::{Bridge, Bridged};
 
-use crate::store::{Store, StoreInput, StoreOutput};
+use crate::saver::*;
+use crate::store::{
+  Store, StoreInput, StoreOutput,
+  IdsOrder, create_ids_order,
+  ThrowerIds, create_thrower_ids,
+  SelboxState
+};
 use super::Thrower;
 
 pub enum ThrowerListMsg {
+  InitThrowerIds(IdsOrder, ThrowerIds),
   NoOp,
-  RefreshList(usize),
+  RefreshList,
   ThrowAll,
-  ThrowSelected
+  ThrowSelected,
+  ToggleSelbox,
+  UpdateSelbox(SelboxState)
 }
 
 pub struct ThrowerList {
-  config_len: usize,
+  order: IdsOrder,
+  selbox_state: SelboxState,
   store: Box<dyn Bridge<Store>>,
   ref_selbox: NodeRef,
-  ref_selroll: NodeRef
+  ref_selroll: NodeRef,
+  thrower_ids: ThrowerIds
 }
 
 impl Component for ThrowerList {
@@ -24,18 +36,24 @@ impl Component for ThrowerList {
 
   fn create(ctx: &Context<Self>) -> Self {
     let mut store = Store::bridge(ctx.link().callback(|res| match res {
-      StoreOutput::UpdateThrowerList(len) => ThrowerListMsg::RefreshList(len),
+      StoreOutput::InitList(order, thrower_ids) =>
+        ThrowerListMsg::InitThrowerIds(order, thrower_ids),
+      StoreOutput::UpdateSelbox(state) =>
+        ThrowerListMsg::UpdateSelbox(state),
+      StoreOutput::UpdateThrowerList => ThrowerListMsg::RefreshList,
       _ => ThrowerListMsg::NoOp
     }));
-    store.send(StoreInput::GetLength);
+    store.send(StoreInput::InitList);
     //
     // TODO: récupération probable de Location ici
     //
     Self {
-      config_len: 0,
+      order: create_ids_order(),
       store,
+      selbox_state: SelboxState::Unchecked,
       ref_selbox: NodeRef::default(),
-      ref_selroll: NodeRef::default()
+      ref_selroll: NodeRef::default(),
+      thrower_ids: create_thrower_ids()
     }
   }
 
@@ -44,53 +62,72 @@ impl Component for ThrowerList {
       //
       // TODO: ajout de la première config par défaut, ou récupération depuis App (url) ?
       //
-    } else {
-      //
-      // TODO: pour l'état "indeterminate" de selector toggle, mieux vaut peut-être passer par ici
-      //
     }
+    self.update_selbox();
   }
 
   fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
     match msg {
+      ThrowerListMsg::InitThrowerIds(order, thrower_ids) => {
+        self.order = order;
+        self.thrower_ids = thrower_ids;
+        true
+      }
       ThrowerListMsg::NoOp => false,
-      ThrowerListMsg::RefreshList(len) =>
-        { self.config_len = len; true }
+      ThrowerListMsg::RefreshList => true,
       ThrowerListMsg::ThrowAll =>
         { self.store.send(StoreInput::ThrowAll); false }
       ThrowerListMsg::ThrowSelected =>
         { self.store.send(StoreInput::ThrowSelected); false }
+      ThrowerListMsg::ToggleSelbox => {
+        //
+        // TODO
+        //
+        false
+      }
+      ThrowerListMsg::UpdateSelbox(state) => {
+        self.selbox_state = state; self.update_selbox(); false
+      }
     }
   }
 
   fn view(&self, ctx: &Context<Self>) -> Html {
     // preparation
-    let throwers: Html = (0..self.config_len).map(|id| {
-      html! { <Thrower index={id} /> }
+    let order = self.order.borrow();
+    let throwers: Html = order.iter().map(|key| {
+      html! { <div key={key.to_string()} class="guaca-line">
+        <Thrower index={key.clone()} />
+      </div> }
     }).collect();
     // styles
     //
     // TODO
-    let display_selroll = "visibility:visible";
+    let selbox_display =
+      if order.len() > 1 { "display:inline-block;" }
+      else { "display:none;" };
     //
     // callbacks
     let roll_all_cb = ctx.link().callback(|_| ThrowerListMsg::ThrowAll);
     let roll_selected_cb = ctx.link().callback(|_| ThrowerListMsg::ThrowSelected);
+    let selbox_cb = ctx.link().callback(|_| ThrowerListMsg::ToggleSelbox);
     // rendering
     html! {
       <div>
         {throwers}
-        if self.config_len > 1 {
+        if order.len() > 1 {
           <div class="guaca-controls">
-            //
-            // TODO: checkbox 3 states
-            //
-            <label></label>
-            //
+            <label class="checky" style={selbox_display}>
+              <input type="checkbox" onchange={selbox_cb}
+                ref={self.ref_selbox.clone()} />
+              <span></span>
+            </label>
           </div>
           <div class="guaca-selector">
+            //
+            // TODO: gérer l'affichage conditionnel de "lancer la sélection"
+            //
             <button
-              style={display_selroll}
+              //style={display_selroll}
               ref={self.ref_selroll.clone()}
               onclick={roll_selected_cb}
             >{"Lancer la sélection"}</button>
@@ -100,6 +137,20 @@ impl Component for ThrowerList {
           </div>
         } 
       </div>
+    }
+  }
+}
+
+impl ThrowerList {
+  fn update_selbox(&self) {
+    if let Some(element) = self.ref_selbox.cast::<HtmlInputElement>() {
+      let (checky, indery) = match self.selbox_state {
+        SelboxState::Checked => (true, false),
+        SelboxState::PartiallyChecked => (false, true),
+        SelboxState::Unchecked => (false, false)
+      };
+      element.set_checked(checky);
+      element.set_indeterminate(indery);
     }
   }
 }

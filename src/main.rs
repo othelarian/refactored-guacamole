@@ -3,6 +3,7 @@ use yew_agent::use_bridge;
 
 mod histo;
 mod throwers;
+pub mod saver;
 mod store;
 
 use histo::Historic;
@@ -36,28 +37,32 @@ fn app() -> Html {
   };
   // rendering
   html! {
-    <div class="guaca-container">
-      <div class="guaca-block guaca-throwers">
-        <ThrowerList />
-        <div class="guaca-navbar">
-          <button onclick={thrower_clear_cb}>{"Tout supprimer"}</button>
-          <button onclick={thrower_add_cb}>{"Ajouter"}</button>
+    <>
+      <h1>{"Refactored Guacamole"}</h1>
+      <h2>{"Le lanceur de dés"}</h2>
+      <div class="guaca-container">
+        <div class="guaca-block guaca-throwers">
+          <ThrowerList />
+          <div class="guaca-navbar">
+            <button onclick={thrower_clear_cb}>{"Tout supprimer"}</button>
+            <button onclick={thrower_add_cb}>{"Ajouter"}</button>
+          </div>
+        </div>
+        <div class="guaca-block guaca-histo">
+          <div class="guaca-config">
+            <span>{"Config. : url"}</span>
+            <label class="switchy">
+              <input type="checkbox" onclick={config_cb} checked={*config} />
+              <span></span>
+            </label>
+            <span>{"local storage"}</span>
+          </div>
+          <hr />
+          <h3>{"Historique"}</h3>
+          <Historic />
         </div>
       </div>
-      <div class="guaca-block guaca-histo">
-        <div class="guaca-config">
-          <span>{"Config. : url"}</span>
-          <label class="switchy">
-            <input type="checkbox" onclick={config_cb} checked={*config} />
-            <span></span>
-          </label>
-          <span>{"local storage"}</span>
-        </div>
-        <hr />
-        <h3>{"Historique"}</h3>
-        <Historic />
-      </div>
-    </div>
+    </>
   }
 }
 

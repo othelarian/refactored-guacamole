@@ -15,6 +15,7 @@ pub struct HistoResult {
 impl HistoResult {
   pub fn create(total: usize) -> Self {
     //
+    // TODO
     //
     HistoResult {
       //
@@ -25,6 +26,7 @@ impl HistoResult {
 
   pub fn view(&self) -> Html {
     //
+    // TODO
     //
     html! {
       <div>
@@ -92,8 +94,12 @@ pub fn historic() -> Html {
         <div class="guaca-navbar">
           <button onclick={histo_clear_cb}>{"Tout effacer"}</button>
         </div>
+        <div class="guaca-list">{history}</div>
+      } else {
+        <div class="guaca-list" style="text-align:center">
+          {"Aucun résultat dans l'historique"}
+        </div>
       }
-      <div class="guaca-list">{history}</div>
     </>
   }
 }

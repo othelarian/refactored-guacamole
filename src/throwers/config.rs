@@ -1,5 +1,5 @@
-use log::info;
 use rand::prelude::*;
+use strum_macros::{Display, EnumIter, EnumString};
 
 use crate::histo::HistoResult;
 
@@ -9,30 +9,32 @@ pub enum DiceMethod {
   Total
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Debug, Display, EnumIter, EnumString, PartialEq)]
 pub enum DiceType {
-  D4, D6, D8, D10, D12, D20, D100, Custom(usize)
+  D4, D6, D8, D10, D12, D20, D100, D(usize)
 }
 
 #[derive(Clone)]
 pub struct ThrowerConfig {
-  pub name: String,
-  nb_dice: usize,
-  dice_type: DiceType,
-  modifier: isize,
+  pub dice_type: DiceType,
   pub method: DiceMethod,
-  pub result: Option<usize>
+  pub modifier: isize,
+  pub name: String,
+  pub nb_dice: usize,
+  pub selected: bool
+}
+
+impl Default for ThrowerConfig {
+  fn default() -> Self {
+    Self::create(String::default(), 1, DiceType::D6, 0)
+  }
 }
 
 impl ThrowerConfig {
-  pub fn default() -> Self {
-    Self::create(String::default(), 1, DiceType::D6, 0)
-  }
-
   pub fn create(name: String, nb_dice: usize, dice_type: DiceType, modifier: isize) -> Self {
     Self {
       name, nb_dice, dice_type, modifier,
-      method: DiceMethod::Total, result: None
+      method: DiceMethod::Total, selected: false
     }
   }
 
@@ -45,7 +47,7 @@ impl ThrowerConfig {
       DiceType::D12 => 12,
       DiceType::D20 => 20,
       DiceType::D100 => 100,
-      DiceType::Custom(v) => v.clone()
+      DiceType::D(v) => v.clone()
     }
   }
 
