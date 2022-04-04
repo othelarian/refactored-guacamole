@@ -2,7 +2,6 @@ use yew::prelude::*;
 use web_sys::HtmlInputElement;
 use yew_agent::{Bridge, Bridged};
 
-use crate::saver::*;
 use crate::store::{
   Store, StoreInput, StoreOutput,
   IdsOrder, create_ids_order,
@@ -12,7 +11,7 @@ use crate::store::{
 use super::Thrower;
 
 pub enum ThrowerListMsg {
-  InitThrowerIds(IdsOrder, ThrowerIds),
+  InitThrowers(IdsOrder, ThrowerIds, SelboxState),
   NoOp,
   RefreshList,
   ThrowAll,
@@ -36,17 +35,14 @@ impl Component for ThrowerList {
 
   fn create(ctx: &Context<Self>) -> Self {
     let mut store = Store::bridge(ctx.link().callback(|res| match res {
-      StoreOutput::InitList(order, thrower_ids) =>
-        ThrowerListMsg::InitThrowerIds(order, thrower_ids),
+      StoreOutput::InitList(order, thrower_ids, selbox_state) =>
+        ThrowerListMsg::InitThrowers(order, thrower_ids, selbox_state),
       StoreOutput::UpdateSelbox(state) =>
         ThrowerListMsg::UpdateSelbox(state),
       StoreOutput::UpdateThrowerList => ThrowerListMsg::RefreshList,
       _ => ThrowerListMsg::NoOp
     }));
     store.send(StoreInput::InitList);
-    //
-    // TODO: récupération probable de Location ici
-    //
     Self {
       order: create_ids_order(),
       store,
@@ -58,19 +54,15 @@ impl Component for ThrowerList {
   }
 
   fn rendered(&mut self, _ctx: &Context<Self>, first_render: bool) {
-    if first_render {
-      //
-      // TODO: ajout de la première config par défaut, ou récupération depuis App (url) ?
-      //
-    }
     self.update_selbox();
   }
 
   fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
     match msg {
-      ThrowerListMsg::InitThrowerIds(order, thrower_ids) => {
+      ThrowerListMsg::InitThrowers(order, thrower_ids, selbox_state) => {
         self.order = order;
         self.thrower_ids = thrower_ids;
+        self.selbox_state = selbox_state;
         true
       }
       ThrowerListMsg::NoOp => false,
@@ -80,9 +72,8 @@ impl Component for ThrowerList {
       ThrowerListMsg::ThrowSelected =>
         { self.store.send(StoreInput::ThrowSelected); false }
       ThrowerListMsg::ToggleSelbox => {
-        //
-        // TODO
-        //
+        self.store.send(StoreInput::SelectToggleAll(
+          self.ref_selbox.cast::<HtmlInputElement>().unwrap().checked()));
         false
       }
       ThrowerListMsg::UpdateSelbox(state) => {
@@ -100,12 +91,13 @@ impl Component for ThrowerList {
       </div> }
     }).collect();
     // styles
-    //
-    // TODO
     let selbox_display =
       if order.len() > 1 { "display:inline-block;" }
       else { "display:none;" };
-    //
+    let selroll_display =
+      if order.len() > 1 && self.selbox_state != SelboxState::Unchecked {
+        "visibility:visible;"
+      } else { "visibility:hidden;" };
     // callbacks
     let roll_all_cb = ctx.link().callback(|_| ThrowerListMsg::ThrowAll);
     let roll_selected_cb = ctx.link().callback(|_| ThrowerListMsg::ThrowSelected);
@@ -123,11 +115,8 @@ impl Component for ThrowerList {
             </label>
           </div>
           <div class="guaca-selector">
-            //
-            // TODO: gérer l'affichage conditionnel de "lancer la sélection"
-            //
             <button
-              //style={display_selroll}
+              style={selroll_display}
               ref={self.ref_selroll.clone()}
               onclick={roll_selected_cb}
             >{"Lancer la sélection"}</button>

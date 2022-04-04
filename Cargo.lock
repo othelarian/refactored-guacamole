@@ -324,6 +324,7 @@ dependencies = [
  "getrandom",
  "log",
  "rand",
+ "serde",
  "strum",
  "strum_macros",
  "wasm-bindgen",

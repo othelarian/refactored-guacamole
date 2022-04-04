@@ -1,3 +1,5 @@
+use wasm_bindgen::JsCast;
+use web_sys::HtmlInputElement;
 use yew::prelude::*;
 use yew_agent::use_bridge;
 
@@ -8,20 +10,73 @@ mod store;
 
 use histo::Historic;
 use throwers::ThrowerList;
-use store::{Store, StoreInput, StoreOutput};
+use store::{ConfigStoring, Store, StoreInput, StoreOutput};
+
+fn url_note() -> Html { html!{
+  <span class="note">
+    {"*la config url ne permet pas de stocker le nom des lanceurs"}
+  </span>
+}}
+
+#[function_component(StoreConfig)]
+fn store_config() -> Html {
+  // preparation
+  let storing = use_state(|| ConfigStoring::Pending);
+  let togconfig = use_state(|| false);
+  let store = {
+    let storing = storing.clone();
+    let togconfig = togconfig.clone();
+    use_bridge::<Store, _>(move |out| match out {
+      StoreOutput::ConfigState(new_state, tog_val) => {
+        storing.set(new_state);
+        togconfig.set(tog_val);
+      }
+      StoreOutput::ConfigLSAfail => storing.set(ConfigStoring::Unavailable),
+      _ => ()
+    })
+  };
+  // callback
+  let config_cb = {
+    let store = store.clone();
+    Callback::from(move |evt: MouseEvent| {
+      match evt.target().and_then(|t| t.dyn_into::<HtmlInputElement>().ok()) {
+        Some(input) => store.send(StoreInput::ToggleConfig(input.checked())),
+        None => ()
+      }
+    })
+  };
+  // rendering
+  match *storing {
+    ConfigStoring::Operational => html! {
+      <div class="guaca-config">
+        <span>{"Config. : url*"}</span>
+        <label class="switchy">
+          <input type="checkbox" onclick={config_cb} checked={*togconfig} />
+          <span></span>
+        </label>
+        <span>{"local storage"}</span>
+        <br />
+        {url_note()}
+      </div>
+    },
+    ConfigStoring::Pending => {
+      store.send(StoreInput::GetConfig);
+      html! {
+        <div class="guaca-config">{"Configuration en cours..."}</div>
+      }
+    }
+    ConfigStoring::Unavailable => html! {
+      <div class="guaca-config">
+        {"Config. uniquement via url*"}<br/>{url_note()}
+      </div>
+    }
+  }
+}
 
 #[function_component(App)]
 fn app() -> Html {
   // preparation
-  let config = use_state(|| false);
-  let store = {
-    let config = config.clone();
-    use_bridge::<Store, _>(move |out| match out {
-      StoreOutput::ConfigState(next_state) => config.set(next_state),
-      _ => ()
-    })
-  };
-  store.send(StoreInput::GetConfig);
+  let store = { use_bridge::<Store, _>(|_| ()) };
   // callbacks
   let thrower_add_cb = {
     let store = store.clone();
@@ -30,10 +85,6 @@ fn app() -> Html {
   let thrower_clear_cb = {
     let store = store.clone();
     Callback::from(move |_| store.send(StoreInput::ClearThrowers))
-  };
-  let config_cb = {
-    let store = store.clone();
-    Callback::from(move |_| store.send(StoreInput::ToggleConfig))
   };
   // rendering
   html! {
@@ -49,14 +100,7 @@ fn app() -> Html {
           </div>
         </div>
         <div class="guaca-block guaca-histo">
-          <div class="guaca-config">
-            <span>{"Config. : url"}</span>
-            <label class="switchy">
-              <input type="checkbox" onclick={config_cb} checked={*config} />
-              <span></span>
-            </label>
-            <span>{"local storage"}</span>
-          </div>
+          <StoreConfig />
           <hr />
           <h3>{"Historique"}</h3>
           <Historic />

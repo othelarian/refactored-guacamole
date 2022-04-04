@@ -70,9 +70,10 @@ impl Component for Thrower {
     match msg {
       ThrowerMsg::ChangeDiceType(mut new_type) => {
         if let DiceType::D(_) = new_type { new_type = DiceType::D(42); }
+        let index = ctx.props().index;
         let mut cfgs = self.config.borrow_mut();
-        cfgs.get_mut(&ctx.props().index).unwrap().dice_type = new_type;
-        self.store.send(StoreInput::UpdateConfig);
+        cfgs.get_mut(&index).unwrap().dice_type = new_type;
+        self.store.send(StoreInput::UpdateConfig(index));
         true
       }
       ThrowerMsg::Delete => {
@@ -96,42 +97,46 @@ impl Component for Thrower {
         false
       }
       ThrowerMsg::ToggleMethod => {
+        let index = ctx.props().index;
         let mut cfgs = self.config.borrow_mut();
-        let mut config = cfgs.get_mut(&ctx.props().index).unwrap();
+        let mut config = cfgs.get_mut(&index).unwrap();
         config.method = match config.method {
           DiceMethod::Each => DiceMethod::Total,
           DiceMethod::Total => DiceMethod::Each
         };
-        self.store.send(StoreInput::UpdateConfig);
+        self.store.send(StoreInput::UpdateConfig(index));
         true
       }
       ThrowerMsg::ToggleSelectRoll(state) => {
         let mut cfgs = self.config.borrow_mut();
         let mut config = cfgs.get_mut(&ctx.props().index).unwrap();
         config.selected = state;
-        self.store.send(StoreInput::UpdateSelbox);
+        self.store.send(StoreInput::UpdateSelbox(ctx.props().index));
         false
       }
       ThrowerMsg::UpdateInput(inp, new_val) => {
+        let index = ctx.props().index;
         let mut cfgs = self.config.borrow_mut();
-        let mut config = cfgs.get_mut(&ctx.props().index).unwrap();
+        let mut config = cfgs.get_mut(&index).unwrap();
         match inp {
           InputUpdated::Modifier => config.modifier = new_val,
           InputUpdated::NbCustom =>
             config.dice_type = DiceType::D(new_val as usize),
           InputUpdated::NbDice => config.nb_dice = new_val as usize
         }
-        self.store.send(StoreInput::UpdateConfig);
+        self.store.send(StoreInput::UpdateConfig(index));
         true
       }
       ThrowerMsg::UpdateName(new_name) => {
+        let index = ctx.props().index;
         self.config.borrow_mut()
-          .entry(ctx.props().index).or_default().name = new_name;
-        self.store.send(StoreInput::UpdateConfig);
+          .entry(index).or_default().name = new_name;
+        self.store.send(StoreInput::UpdateName(index));
         false
       }
       ThrowerMsg::UpdateSelbox(new_val) => {
-        self.ref_select_roll.cast::<HtmlInputElement>().unwrap().set_checked(new_val);
+        self.ref_select_roll.cast::<HtmlInputElement>().unwrap()
+          .set_checked(new_val);
         false
       }
     }
@@ -143,9 +148,11 @@ impl Component for Thrower {
       if self.init { cfgs.get(&ctx.props().index).unwrap() }
       else { cfgs.get(&0).unwrap() };
     // details
-    let (dcustom_data, dcustom_style) = if let DiceType::D(v) = &config.dice_type {
-      (v.to_string(), "display:inline-block;")
-    } else { (String::from("42"), "display:none;") };
+    let (dcustom_data, dcustom_style) =
+      if let DiceType::D(v) = &config.dice_type {
+        (v.to_string(), "display:inline-block;")
+      }
+      else { (String::from("42"), "display:none;") };
     let method_data = ThrowerConfig::method(&config.method);
     let modifier_data = config.modifier.to_string();
     let nb_dice_data = config.nb_dice.to_string();
@@ -234,7 +241,9 @@ impl Component for Thrower {
           </span>
         </div>
         <div class="guaca-result">
-          <button ref={self.ref_result.clone()} onclick={roll_cb}>{result_data}</button>
+          <button ref={self.ref_result.clone()} onclick={roll_cb}>
+            {result_data}
+          </button>
         </div>
       </>
     }
@@ -247,14 +256,14 @@ impl Thrower {
     use strum::{IntoEnumIterator};
     let select_type_cb = ctx.link().callback(|ev: Event| {
       match ev.target().and_then(|t| t.dyn_into::<HtmlSelectElement>().ok()) {
-        Some(input) => ThrowerMsg::ChangeDiceType(DiceType::from_str(&input.value()).unwrap()),
+        Some(input) => ThrowerMsg::ChangeDiceType(
+          DiceType::from_str(&input.value()).unwrap()),
         None => ThrowerMsg::NoOp
       }
     });
     let selects: Html = DiceType::iter().map(|tp| html! {
       <option value={tp.to_string()} selected={curr_type == tp}>
-        {tp.to_string().to_lowercase()}
-      </option>
+        {tp.to_name()}</option>
     }).collect();
     html! {
       <select onchange={select_type_cb}>{selects}</select>
