@@ -84,7 +84,7 @@ pub struct Store {
   link: AgentLink<Self>,
   names: Vec<String>,
   order: IdsOrder,
-  storage_config: GuacaConfig,
+  storage_config: Rc<GuacaConfig>,
   throwers: ConfigHash,
   thrower_ids: ThrowerIds
 }
@@ -96,12 +96,15 @@ impl Agent for Store {
   type Output = StoreOutput;
 
   fn create(link: AgentLink<Self>) -> Self {
-    let storage_config = GuacaConfig::new();
+    let storage_config = Rc::new(GuacaConfig::new());
     let order = create_ids_order();
     let throwers = create_config_hash();
     let thrower_ids = create_thrower_ids();
     let (cfgs, names) = match parse_init(storage_config.has_config()) {
-      Some((isurl, mut cfgs, names)) => {
+      Some((isurl, mut cfgs, names, history)) => {
+        //
+        // TODO: il manque l'historique
+        //
         let mut names = if isurl { Vec::default() } else { names.unwrap() };
         let mut throwers = throwers.borrow_mut();
         let mut thrower_ids = thrower_ids.borrow_mut();
@@ -110,11 +113,11 @@ impl Agent for Store {
         for (idx, cfg) in cfgs.iter().enumerate() {
           match ThrowerConfig::from_string(cfg) {
             Ok(mut thrower) => {
-              if !isurl { thrower.name = names[idx].clone(); }
+              if isurl { names.push(String::default()); }
+              else { thrower.name = names[idx].clone(); }
               throwers.insert(idx, thrower);
               thrower_ids.insert(idx, None);
               order.push(idx);
-              if isurl { names.push(String::default()); }
             }
             Err(_) => to_remove.push(idx)
           }
@@ -188,14 +191,6 @@ impl Agent for Store {
           self.link.respond(*id,
             StoreOutput::HistoryAction(HistoAction::Add(result)));
         }
-        //
-        // TODO: si ls est dispo, insérer le nouveau résultat dans le ls
-        //
-        /*
-        if self.storage_config {
-          self.link.send_message(StoreMsg::UpdateConfig)
-        }
-        */
       }
       StoreInput::ClearThrowers => {
         self.throwers.borrow_mut().clear();
@@ -234,7 +229,11 @@ impl Agent for Store {
           self.selbox_state()
         ));
       }
-      StoreInput::RegisterHistory => self.id_history = Some(id),
+      StoreInput::RegisterHistory => {
+        self.id_history = Some(id);
+        self.link.respond(id, StoreOutput::HistoryAction(
+          HistoAction::SetGuacaLink(self.storage_config.clone())));
+      }
       StoreInput::RegisterThrower(key) => {
         self.thrower_ids.borrow_mut().insert(key, Some(id));
         self.link.respond(id, StoreOutput::InitThrower(self.throwers.clone()));
@@ -265,8 +264,14 @@ impl Agent for Store {
       }
       StoreInput::ToggleConfig(choice) => {
         if self.storage_config.toggle_ls(choice) {
-          if choice { self.storage_config.update_names(
-            JsValue::from_serde(&self.names).unwrap()); }
+          if choice {
+            self.storage_config.update_names(
+              JsValue::from_serde(&self.names).unwrap());
+            if let Some(id) = &self.id_history {
+              self.link.respond(*id,
+                StoreOutput::HistoryAction(HistoAction::Copy));
+            }
+          }
         } else { self.link.respond(id, StoreOutput::ConfigLSAfail); }
       }
       StoreInput::ThrowAdd => {

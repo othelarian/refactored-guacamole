@@ -2,7 +2,7 @@ use rand::prelude::*;
 use std::str::FromStr;
 use strum_macros::{Display, EnumIter, EnumString};
 
-use crate::histo::HistoResult;
+use crate::histo::HistoLine;
 
 #[derive(Clone, Debug, Display, EnumString)]
 pub enum DiceMethod {
@@ -80,37 +80,38 @@ impl ThrowerConfig {
     let mut cfg = Self::default();
     let tmp_vec = &config.split("k").collect::<Vec<&str>>();
     if tmp_vec.len() < 3 { Err(()) } else {
-      match DiceType::from_str(&config[0..1]).map_err(|_| CfgParseError::DiceType)
-      .and_then(|dice_type| {
-        if let DiceType::D(_) = dice_type {
-          if tmp_vec.len() < 4 { Err(CfgParseError::Split) } else {
-            tmp_vec[3].parse::<usize>()
-              .map_err(|_| CfgParseError::DiceCustom)
-              .map(|cv| DiceType::D(cv))
+      match DiceType::from_str(&config[0..1])
+        .map_err(|_| CfgParseError::DiceType
+        ).and_then(|dice_type| {
+          if let DiceType::D(_) = dice_type {
+            if tmp_vec.len() < 4 { Err(CfgParseError::Split) } else {
+              tmp_vec[3].parse::<usize>()
+                .map_err(|_| CfgParseError::DiceCustom)
+                .map(|cv| DiceType::D(cv))
+            }
+          } else { Ok(dice_type) }
+        }).and_then(|dice_type| {
+          cfg.dice_type = dice_type;
+          DiceMethod::from_str(&config[1..2]).map_err(|_| CfgParseError::Method)
+        }).and_then(|method| {
+          cfg.method = method;
+          tmp_vec[1].parse::<usize>().map_err(|_| CfgParseError::NbDice)
+          .and_then(|nb_dice| {
+            cfg.nb_dice = nb_dice;
+            tmp_vec[2].parse::<isize>().map_err(|_| CfgParseError::Modifier)
+          })
+        }).and_then(|modifier| {
+          cfg.modifier = modifier;
+          if &config[2..3] == "t" { cfg.selected = true; Ok(cfg) }
+          else if &config[2..3] == "f" { cfg.selected = false; Ok(cfg) }
+          else { Err(CfgParseError::Selected) }
+        }) {
+          Ok(cfg) => Ok(cfg),
+          Err(_err) => {
+            //log::info!("cfg parse error: {}", err);
+            Err(())
           }
-        } else { Ok(dice_type) }
-      }).and_then(|dice_type| {
-        cfg.dice_type = dice_type;
-        DiceMethod::from_str(&config[1..2]).map_err(|_| CfgParseError::Method)
-      }).and_then(|method| {
-        cfg.method = method;
-        tmp_vec[1].parse::<usize>().map_err(|_| CfgParseError::NbDice)
-        .and_then(|nb_dice| {
-          cfg.nb_dice = nb_dice;
-          tmp_vec[2].parse::<isize>().map_err(|_| CfgParseError::Modifier)
-        })
-      }).and_then(|modifier| {
-        cfg.modifier = modifier;
-        if &config[2..3] == "t" { cfg.selected = true; Ok(cfg) }
-        else if &config[2..3] == "f" { cfg.selected = false; Ok(cfg) }
-        else { Err(CfgParseError::Selected) }
-      }) {
-        Ok(cfg) => Ok(cfg),
-        Err(_err) => {
-          //log::info!("cfg parse error: {}", err);
-          Err(())
         }
-      }
     }
   }
 
@@ -144,13 +145,21 @@ impl ThrowerConfig {
     format!("{}d{}{}, {}", self.nb_dice, dice_nb, modifier, method)
   }
 
-  pub fn roll(&self) -> HistoResult {
+  pub fn roll(&self) -> HistoLine {
     //
     // TODO
     //
     let mut rng = thread_rng();
     //
-    HistoResult::create(rng.gen_range(1..=6))
+    let name =
+      if self.name.is_empty() { self.placeholder() }
+      else { format!("{} ({})", self.name, self.placeholder()) };
+    //
+    let total = 5; // TODO: ce n'est clairement pas ça Xb
+    //
+    //HistoResult::create(rng.gen_range(1..=6))
+    //
+    HistoLine::create(name, total)
     //
   }
 

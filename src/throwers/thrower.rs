@@ -3,6 +3,7 @@ use web_sys::{Element, HtmlInputElement, HtmlSelectElement};
 use yew::prelude::*;
 use yew_agent::{Bridge, Bridged};
 
+use crate::histo::HistoResult;
 use crate::store::{
   Store, StoreInput, StoreOutput,
   ConfigHash, create_config_hash
@@ -93,7 +94,7 @@ impl Component for Thrower {
         self.result = Some(res.total);
         self.ref_result.cast::<Element>().unwrap()
           .set_inner_html(&res.total.to_string());
-        self.store.send(StoreInput::AddHistory(res));
+        self.store.send(StoreInput::AddHistory(HistoResult::one_result(res)));
         false
       }
       ThrowerMsg::ToggleMethod => {
@@ -224,7 +225,7 @@ impl Component for Thrower {
           <input
             class="guaca-title" placeholder={placeholder_data}
             maxlength="30" onchange={name_cb}
-            text={config.name.clone()} />
+            value={config.name.clone()} />
           <br />
           <input class="guaca-number" type="number" min="1"
             onchange={nb_dice_cb} value={nb_dice_data} />

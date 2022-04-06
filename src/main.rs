@@ -90,7 +90,10 @@ fn app() -> Html {
   html! {
     <>
       <h1>{"Refactored Guacamole"}</h1>
-      <h2>{"Le lanceur de dés"}</h2>
+      <h2>
+        {"Le lanceur de dés, copie personnelle de "}
+        <a href="https://www.dnddiceroller.com/">{"dnddiceroller.com"}</a>
+      </h2>
       <div class="guaca-container">
         <div class="guaca-block guaca-throwers">
           <ThrowerList />

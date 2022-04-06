@@ -1,13 +1,13 @@
 export class GuacaConfig {
   constructor() {
-    this.lsa = try_storage();
-    let lsd = localStorage.length;
-    this.url = (this.lsa && lsd == 0)? true : false;
+    this.url = false;
+    this.history = [];
+    if (try_storage() && localStorage.length == 0) { this.url = true; }
   }
 
   // config's config interface
 
-  islsa() { return this.lsa; }
+  islsa() { return try_storage(); }
   isurl() { return this.url; }
 
   toggle_ls(sel_ls) {
@@ -16,7 +16,7 @@ export class GuacaConfig {
         this.url = false;
         this.lsa = try_storage();
         if (this.lsa) {
-          localStorage.setItem("cfgs", location.hash);
+          localStorage.setItem("cfgs", location.hash.substring(1));
           location.hash = "";
           return true;
         } else { return false; }
@@ -52,6 +52,11 @@ export class GuacaConfig {
         localStorage.clear();
         return {"has": cfgs > 0, "url": true, "cfgs": cfgs};
       } else {
+        //
+        // TODO: ajout de l'historique ici
+        //
+        let history
+        //
         return {
           "has": cfgs.length > 0, "url": false,
           "cfgs": cfgs, "names": JSON.parse(names)
@@ -71,6 +76,38 @@ export class GuacaConfig {
   }
 
   // history interface
+
+  add_history(new_res) {
+    //
+    // TODO
+    //
+    console.log("add history reached");
+    //
+  }
+
+  clear_history() {
+    //
+    // TODO
+    //
+    console.log("clear history reached");
+    //
+  }
+
+  copy_history(history) {
+    //
+    // TODO
+    //
+    console.log("copy history reached");
+    //
+  }
+
+  remove_history(id) {
+    //
+    // TODO
+    //
+    console.log("remove history reached");
+    //
+  }
 }
 
 function try_storage() {

@@ -244,9 +244,15 @@ h3 { margin: auto 10px; }
       text-align: center;
       border: none;
       border-radius: 12px 12px 0 0;
-    }
-    .guaca-title:focus-visible {
-      outline: none;
+      &:hover::placeholder {
+        color: lightgrey;
+      }
+      &:focus-visible {
+        outline: none;
+      }
+      &:focus-visible::placeholder {
+        color: lightgrey;
+      }
     }
   }
 

@@ -35,27 +35,34 @@ extern "C" {
 
   // history interface
 
-  //#[wasm_bindgen(method)]
-  //pub fn add_history(this: &GuacaConfig, new_res: String);
+  #[wasm_bindgen(method)]
+  pub fn add_history(this: &GuacaConfig, new_res: JsValue);
 
-  //#[wasm_bindgen(method)]
-  //pub fn remove_history(this: &GuacaConfig, idx: usize);
+  #[wasm_bindgen(method)]
+  pub fn clear_history(this: &GuacaConfig);
 
-  //#[wasm_bindgen(method)]
-  //pub fn clear_history(this: &GuacaConfig);
+  #[wasm_bindgen(method)]
+  pub fn copy_history(this: &GuacaConfig, history: JsValue);
+
+  #[wasm_bindgen(method)]
+  pub fn remove_history(this: &GuacaConfig, idx: usize);
 }
+
+use crate::histo::HistoResult;
 
 #[derive(Deserialize, Serialize)]
 struct HasConfigRes {
   pub has: bool,
   pub url: bool,
   pub cfgs: Vec<String>,
-  pub names: Option<Vec<String>>
+  pub names: Option<Vec<String>>,
+  pub history: Option<Vec<HistoResult>>
 }
 
 pub fn parse_init(config: JsValue)
--> Option<(bool, Vec<String>, Option<Vec<String>>)> {
+-> Option<(bool, Vec<String>, Option<Vec<String>>, Option<Vec<HistoResult>>)> {
   let config: HasConfigRes = config.into_serde().unwrap();
-  if config.has { Some((config.url, config.cfgs, config.names)) }
+  if config.has {
+    Some((config.url, config.cfgs, config.names, config.history)) }
   else { None }
 }
