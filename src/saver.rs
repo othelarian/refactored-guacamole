@@ -3,6 +3,10 @@ use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(module="/saver.js")]
 extern "C" {
+  // get the timestamp
+  pub fn get_timestamp() -> String;
+
+  // GuacaConfig  
   pub type GuacaConfig;
 
   // config's config interface
@@ -45,24 +49,23 @@ extern "C" {
   pub fn copy_history(this: &GuacaConfig, history: JsValue);
 
   #[wasm_bindgen(method)]
+  pub fn get_history(this: &GuacaConfig) -> JsValue;
+
+  #[wasm_bindgen(method)]
   pub fn remove_history(this: &GuacaConfig, idx: usize);
 }
-
-use crate::histo::HistoResult;
 
 #[derive(Deserialize, Serialize)]
 struct HasConfigRes {
   pub has: bool,
   pub url: bool,
   pub cfgs: Vec<String>,
-  pub names: Option<Vec<String>>,
-  pub history: Option<Vec<HistoResult>>
+  pub names: Option<Vec<String>>
 }
 
 pub fn parse_init(config: JsValue)
--> Option<(bool, Vec<String>, Option<Vec<String>>, Option<Vec<HistoResult>>)> {
+-> Option<(bool, Vec<String>, Option<Vec<String>>)> {
   let config: HasConfigRes = config.into_serde().unwrap();
-  if config.has {
-    Some((config.url, config.cfgs, config.names, config.history)) }
+  if config.has { Some((config.url, config.cfgs, config.names)) }
   else { None }
 }

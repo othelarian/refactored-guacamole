@@ -176,15 +176,27 @@ h3 { margin: auto 10px; }
     border: solid 2px $darkcol;
     border-radius: $radius;
   
-    button {
-      border-radius: 15px;
-    }
+    button { border-radius: $radius; }
   }
   
   .guaca-line {
     border-top: solid 1px $darkcol;
     padding: 1px;
+    align-items: flex-start;
+    display: flex;
+
+    & > div {
+      display: inline-block;
+      width: calc(100% - 29px);
+      padding: 2px;
+    }
+
+    .guaca-timestamp {
+      font-style: italic;
+      font-size: 0.8rem;
+    }
   }
+  .guaca-line:first-child { border-top: none; }
 
   .guaca-date {
     font-style: italic;

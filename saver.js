@@ -1,3 +1,5 @@
+export function get_timestamp() { return new Date().toLocaleString(); }
+
 export class GuacaConfig {
   constructor() {
     this.url = false;
@@ -13,9 +15,8 @@ export class GuacaConfig {
   toggle_ls(sel_ls) {
     if (sel_ls) {
       if (this.url) {
-        this.url = false;
-        this.lsa = try_storage();
-        if (this.lsa) {
+        if (try_storage()) {
+          this.url = false;
           localStorage.setItem("cfgs", location.hash.substring(1));
           location.hash = "";
           return true;
@@ -52,11 +53,7 @@ export class GuacaConfig {
         localStorage.clear();
         return {"has": cfgs > 0, "url": true, "cfgs": cfgs};
       } else {
-        //
-        // TODO: ajout de l'historique ici
-        //
-        let history
-        //
+        this.history = JSON.parse(localStorage.getItem("history"));
         return {
           "has": cfgs.length > 0, "url": false,
           "cfgs": cfgs, "names": JSON.parse(names)
@@ -77,37 +74,24 @@ export class GuacaConfig {
 
   // history interface
 
-  add_history(new_res) {
-    //
-    // TODO
-    //
-    console.log("add history reached");
-    //
+  add_history(new_res) { this.history.push(new_res); this.update_history(); }
+
+  clear_history() { this.history = []; this.update_history(); }
+
+  copy_history(history) { this.history = history; this.update_history(); }
+
+  get_history() {
+    if (!this.url) {
+      this.history = JSON.parse(localStorage.getItem("history")); }
+    return this.history;
   }
 
-  clear_history() {
-    //
-    // TODO
-    //
-    console.log("clear history reached");
-    //
+  update_history() {
+    if (!this.url) {
+      localStorage.setItem("history", JSON.stringify(this.history)); }
   }
 
-  copy_history(history) {
-    //
-    // TODO
-    //
-    console.log("copy history reached");
-    //
-  }
-
-  remove_history(id) {
-    //
-    // TODO
-    //
-    console.log("remove history reached");
-    //
-  }
+  remove_history(id) { this.history.splice(id, 1); this.update_history(); }
 }
 
 function try_storage() {

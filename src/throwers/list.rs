@@ -1,5 +1,5 @@
 use yew::prelude::*;
-use web_sys::HtmlInputElement;
+use web_sys::{Element, HtmlInputElement};
 use yew_agent::{Bridge, Bridged};
 
 use crate::store::{
@@ -53,7 +53,7 @@ impl Component for ThrowerList {
     }
   }
 
-  fn rendered(&mut self, _ctx: &Context<Self>, first_render: bool) {
+  fn rendered(&mut self, _ctx: &Context<Self>, _first_render: bool) {
     self.update_selbox();
   }
 
@@ -72,11 +72,21 @@ impl Component for ThrowerList {
       ThrowerListMsg::ThrowSelected =>
         { self.store.send(StoreInput::ThrowSelected); false }
       ThrowerListMsg::ToggleSelbox => {
-        self.store.send(StoreInput::SelectToggleAll(
-          self.ref_selbox.cast::<HtmlInputElement>().unwrap().checked()));
+        let new_state = self.ref_selbox.cast::<HtmlInputElement>()
+          .unwrap().checked();
+        self.ref_selroll.cast::<Element>().unwrap().set_attribute("style",
+          if new_state { "visibility:visible;" } else { "visibility:hidden;" }
+        ).unwrap();
+        self.store.send(StoreInput::SelectToggleAll(new_state));
         false
       }
       ThrowerListMsg::UpdateSelbox(state) => {
+        let order_len = self.order.borrow().len();
+        self.ref_selroll.cast::<Element>().unwrap().set_attribute("style",
+          if order_len <= 1 || state == SelboxState::Unchecked {
+            "visibility:hidden;"
+          } else { "visibility:visible;" }
+        ).unwrap();
         self.selbox_state = state; self.update_selbox(); false
       }
     }

@@ -28,6 +28,7 @@ pub enum ThrowerMsg {
   ToggleSelectRoll(bool),
   UpdateInput(InputUpdated, isize),
   UpdateName(String),
+  UpdateRes(usize),
   UpdateSelbox(bool)
 }
 
@@ -55,6 +56,7 @@ impl Component for Thrower {
       StoreOutput::ForceRefresh => ThrowerMsg::Refresh,
       StoreOutput::ToggleSelCheck(state) =>
         ThrowerMsg::UpdateSelbox(state),
+      StoreOutput::UpdateRollRes(res) => ThrowerMsg::UpdateRes(res),
       _ => ThrowerMsg::NoOp
     }));
     store.send(StoreInput::RegisterThrower(ctx.props().index));
@@ -135,6 +137,12 @@ impl Component for Thrower {
         self.store.send(StoreInput::UpdateName(index));
         false
       }
+      ThrowerMsg::UpdateRes(new_res) => {
+        self.ref_result.cast::<Element>().unwrap()
+          .set_inner_html(&new_res.to_string());
+        self.result = Some(new_res);
+        false
+      }
       ThrowerMsg::UpdateSelbox(new_val) => {
         self.ref_select_roll.cast::<HtmlInputElement>().unwrap()
           .set_checked(new_val);
@@ -213,10 +221,9 @@ impl Component for Thrower {
     html! {
       <>
         <div class="guaca-controls">
-          <label class="checky" style={select_roll_data}
-              ref={self.ref_select_roll.clone()}>
+          <label class="checky" style={select_roll_data}>
             <input type="checkbox" onchange={select_roll_cb}
-              checked={config.selected} />
+              ref={self.ref_select_roll.clone()} checked={config.selected} />
             <span></span>
           </label>
           <button onclick={delete_thrower_cb}>{"x"}</button>

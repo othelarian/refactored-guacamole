@@ -1,11 +1,10 @@
-use log::info;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 use wasm_bindgen::JsValue;
 use yew_agent::{Agent, AgentLink, Context, HandlerId};
 
-use crate::histo::{HistoAction, HistoResult};
+use crate::histo::{HistoAction, HistoLine, HistoResult};
 use crate::saver::*;
 use crate::throwers::ThrowerConfig;
 
@@ -41,6 +40,7 @@ pub enum StoreOutput {
   InitList(IdsOrder, ThrowerIds, SelboxState),
   InitThrower(ConfigHash),
   ToggleSelCheck(bool),
+  UpdateRollRes(usize),
   UpdateSelbox(SelboxState),
   UpdateThrowerList
 }
@@ -100,11 +100,9 @@ impl Agent for Store {
     let order = create_ids_order();
     let throwers = create_config_hash();
     let thrower_ids = create_thrower_ids();
+    let mut counter = 0;
     let (cfgs, names) = match parse_init(storage_config.has_config()) {
-      Some((isurl, mut cfgs, names, history)) => {
-        //
-        // TODO: il manque l'historique
-        //
+      Some((isurl, mut cfgs, names)) => {
         let mut names = if isurl { Vec::default() } else { names.unwrap() };
         let mut throwers = throwers.borrow_mut();
         let mut thrower_ids = thrower_ids.borrow_mut();
@@ -118,6 +116,7 @@ impl Agent for Store {
               throwers.insert(idx, thrower);
               thrower_ids.insert(idx, None);
               order.push(idx);
+              counter += 1;
             }
             Err(_) => to_remove.push(idx)
           }
@@ -149,10 +148,9 @@ impl Agent for Store {
       }
     };
     Self {
-      counter: 1,
       id_history: None,
       id_list: None,
-      cfgs, link, names, order, storage_config, throwers, thrower_ids
+      counter, cfgs, link, names, order, storage_config, throwers, thrower_ids
     }
   }
 
@@ -163,19 +161,17 @@ impl Agent for Store {
           JsValue::from_serde(&self.cfgs).unwrap());
       }
       StoreMsg::UpdateList => {
-        if let Some(id) = &self.id_list {
-          self.link.respond(*id, StoreOutput::UpdateThrowerList);
-        }
         let cfgs_len = self.cfgs.len();
         if cfgs_len == 1 || cfgs_len == 2 {
           let thrower_ids = self.thrower_ids.borrow();
           let some_id =
             thrower_ids.get(self.order.borrow().get(0).unwrap()).unwrap();
           if let Some(id) = &some_id {
-            self.link.respond(*id, StoreOutput::ForceRefresh);
-          }
+            self.link.respond(*id, StoreOutput::ForceRefresh); }
         }
         self.link.send_message(StoreMsg::UpdateConfig);
+        if let Some(id) = &self.id_list {
+          self.link.respond(*id, StoreOutput::UpdateThrowerList); }
       }
       StoreMsg::UpdateNames => if !self.storage_config.isurl() {
         self.storage_config
@@ -201,8 +197,7 @@ impl Agent for Store {
         self.counter = 0;
         self.storage_config.clear_config();
         if let Some(id) = &self.id_list {
-          self.link.respond(*id, StoreOutput::UpdateThrowerList);
-        }
+          self.link.respond(*id, StoreOutput::UpdateThrowerList); }
       }
       StoreInput::DeleteThrower(key) => {
         self.throwers.borrow_mut().remove(&key);
@@ -239,27 +234,15 @@ impl Agent for Store {
         self.link.respond(id, StoreOutput::InitThrower(self.throwers.clone()));
       }
       StoreInput::SelectToggleAll(state) => {
-        //
-        info!("new state: {}", state);
-        //
-        let throwers = self.throwers.borrow_mut();
-        //
-        // TODO: maj des configs
-        //
-        //
-        for some_id in self.thrower_ids.borrow().values() {
-          if let Some(id) = &some_id {
+        let mut throwers = self.throwers.borrow_mut();
+        let thrower_ids = self.thrower_ids.borrow();
+        for (id, key) in self.order.borrow().iter().enumerate() {
+          throwers.get_mut(&key).unwrap().selected = state;
+          self.cfgs[id] = throwers.get(&key).unwrap().to_string();
+          if let Some(id) = &thrower_ids.get(&key).unwrap() {
             self.link.respond(*id, StoreOutput::ToggleSelCheck(state));
           }
         }
-        //
-        //
-        /*
-        self.cfgs = self.order.iter().map(|i| {
-          throwers.get(i).unwrap().to
-        })
-        */
-        //
         self.link.send_message(StoreMsg::UpdateConfig);
       }
       StoreInput::ToggleConfig(choice) => {
@@ -286,18 +269,37 @@ impl Agent for Store {
         self.link.send_message(StoreMsg::UpdateNames);
       }
       StoreInput::ThrowAll => {
-        //
-        // TODO
-        //
-        info!("roll all");
-        //
+        let thrower_ids = self.thrower_ids.borrow();
+        let results: Vec<HistoLine> = self.throwers.borrow().iter()
+          .map(|(key, thrower)| {
+            let res = thrower.roll();
+            if let Some(id) = &thrower_ids.get(key).unwrap() {
+              self.link.respond(*id, StoreOutput::UpdateRollRes(res.total));
+            }
+            res
+          }).collect();
+        if let Some(id) = &self.id_history {
+          self.link.respond(*id, StoreOutput::HistoryAction(
+            HistoAction::Add(HistoResult::create(results))));
+        }
       }
       StoreInput::ThrowSelected => {
-        //
-        // TODO
-        //
-        info!("roll selected");
-        //
+        let thrower_ids = self.thrower_ids.borrow();
+        let results: Vec<HistoLine> = self.throwers.borrow().iter()
+          .fold(Vec::default(), |mut acc, (key, thrower)| {
+            if thrower.selected {
+              let res = thrower.roll();
+              if let Some(id) = &thrower_ids.get(key).unwrap() {
+                self.link.respond(*id, StoreOutput::UpdateRollRes(res.total));
+              }
+              acc.push(res);
+              acc
+            } else { acc }
+          });
+        if let Some(id) = &self.id_history {
+          self.link.respond(*id, StoreOutput::HistoryAction(
+            HistoAction::Add(HistoResult::create(results))));
+        }
       }
       StoreInput::UpdateConfig(key) => {
         let pos = self.order.borrow().iter().position(|x| *x == key).unwrap();

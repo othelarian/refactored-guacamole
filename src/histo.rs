@@ -4,7 +4,7 @@ use wasm_bindgen::JsValue;
 use yew::prelude::*;
 use yew_agent::use_bridge;
 
-use crate::saver::GuacaConfig;
+use crate::saver::{GuacaConfig, get_timestamp};
 use crate::store::{StoreInput, StoreOutput};
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -13,13 +13,16 @@ pub struct HistoLine {
   // TODO
   //
   name: String,
+  placeholder: String,
   //
   //
   pub total: usize
 }
 
 impl HistoLine {
-  pub fn create(name: String, total: usize) -> Self {
+  pub fn create(
+    name: String, placeholder: String, total: usize
+  ) -> Self {
     //
     // TODO
     //
@@ -27,6 +30,7 @@ impl HistoLine {
     Self {
       //
       name,
+      placeholder,
       total
     }
   }
@@ -35,24 +39,44 @@ impl HistoLine {
     //
     // TODO
     //
+    //
     html! {
       //
-      <div>{"histo line, total "}{self.total}</div>
+      <div>
+        if self.name.is_empty() { {self.placeholder.clone()} } else {
+          <strong>{self.name.clone()}</strong>
+          {format!(" ({})", self.placeholder)}
+        }
+        {" : "}
+        //
+        //
+        {"histo line, total "}{self.total}</div>
       //
     }
   }
 }
 
 #[derive(Clone, Deserialize, Serialize)]
-pub struct HistoResult { lines: Vec<HistoLine> }
+pub struct HistoResult {
+  timestamp: String,
+  lines: Vec<HistoLine>
+}
 
 impl HistoResult {
-  pub fn create(lines: Vec<HistoLine>) -> Self { Self { lines } }
+  pub fn create(lines: Vec<HistoLine>) -> Self {
+    let timestamp = get_timestamp();
+    Self { timestamp, lines }
+  }
 
   pub fn one_result(result: HistoLine) -> Self { Self::create(vec!(result)) }
 
   fn view(&self) -> Html {
-    html! {<div>{for self.lines.iter().map(|line| line.view())}</div>}
+    html! {
+      <div>
+        <span class="guaca-timestamp">{self.timestamp.clone()}</span><br />
+        {for self.lines.iter().map(|line| line.view())}
+      </div>
+    }
   }
 }
 
@@ -100,7 +124,11 @@ impl Reducible for HistoState {
           gc.remove_history(id); ngc = Some(gc); }
         history.remove(id);
       }
-      HistoAction::SetGuacaLink(guaca_config) => ngc = Some(guaca_config)
+      HistoAction::SetGuacaLink(guaca_config) => {
+        if !guaca_config.isurl() {
+          history = guaca_config.get_history().into_serde().unwrap(); }
+        ngc = Some(guaca_config)
+      }
     };
     Self { history, guaca_config: ngc }.into()
   }
@@ -127,7 +155,9 @@ pub fn historic() -> Html {
       Callback::from(move |_| reducer.dispatch(HistoAction::Remove(id)))
     };
     html! {
-      <div>{res.view()}<button onclick={delete_res_cb}>{"x"}</button></div>
+      <div class="guaca-line">
+        {res.view()}<button onclick={delete_res_cb}>{"x"}</button>
+      </div>
     }
   }).collect();
   let histo_clear_cb = {

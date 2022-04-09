@@ -151,15 +151,12 @@ impl ThrowerConfig {
     //
     let mut rng = thread_rng();
     //
-    let name =
-      if self.name.is_empty() { self.placeholder() }
-      else { format!("{} ({})", self.name, self.placeholder()) };
-    //
-    let total = 5; // TODO: ce n'est clairement pas ça Xb
+    //let total = 5; // TODO: ce n'est clairement pas ça Xb
+    let total = rng.gen_range(1..=Self::max(&self.dice_type));
     //
     //HistoResult::create(rng.gen_range(1..=6))
     //
-    HistoLine::create(name, total)
+    HistoLine::create(self.name.clone(), self.placeholder(), total)
     //
   }
 
