@@ -114,6 +114,6 @@ fn app() -> Html {
 }
 
 fn main() {
-  console_log::init().unwrap();
+  //console_log::init().unwrap();
   yew::start_app::<App>();
 }

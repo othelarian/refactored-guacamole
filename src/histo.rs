@@ -4,54 +4,45 @@ use wasm_bindgen::JsValue;
 use yew::prelude::*;
 use yew_agent::use_bridge;
 
+use crate::throwers::DiceMethod;
 use crate::saver::{GuacaConfig, get_timestamp};
 use crate::store::{StoreInput, StoreOutput};
 
 #[derive(Clone, Deserialize, Serialize)]
 pub struct HistoLine {
-  //
-  // TODO
-  //
+  method: DiceMethod,
+  modifier: isize,
   name: String,
   placeholder: String,
-  //
-  //
-  pub total: usize
+  results: Vec<isize>,
+  pub total: isize
 }
 
 impl HistoLine {
   pub fn create(
-    name: String, placeholder: String, total: usize
+    method: DiceMethod, modifier: isize, name: String,
+    placeholder: String, results: Vec<isize>, total: isize
   ) -> Self {
-    //
-    // TODO
-    //
-    //
-    Self {
-      //
-      name,
-      placeholder,
-      total
-    }
+    Self { method, modifier, name, placeholder, results, total }
   }
 
   fn view(&self) -> Html {
-    //
-    // TODO
-    //
-    //
+    let results_display: Html = match self.method {
+      DiceMethod::Each => self.results.iter().map(|res|
+        html! { <span>{format!("{}({}), ", res+self.modifier, res)}</span> }
+      ).collect(),
+      DiceMethod::Total => self.results.iter().map(|res|
+        html! { <>{res}{", "}</> }
+      ).collect()
+    };
     html! {
-      //
       <div>
         if self.name.is_empty() { {self.placeholder.clone()} } else {
           <strong>{self.name.clone()}</strong>
           {format!(" ({})", self.placeholder)}
         }
-        {" : "}
-        //
-        //
-        {"histo line, total "}{self.total}</div>
-      //
+        {" : "}{results_display}{"TOTAL : "}{self.total}
+      </div>
     }
   }
 }

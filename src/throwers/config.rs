@@ -1,10 +1,11 @@
 use rand::prelude::*;
+use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use strum_macros::{Display, EnumIter, EnumString};
 
 use crate::histo::HistoLine;
 
-#[derive(Clone, Debug, Display, EnumString)]
+#[derive(Clone, Debug, Deserialize, Display, EnumString, PartialEq, Serialize)]
 pub enum DiceMethod {
   #[strum(serialize = "e")]
   Each,
@@ -29,7 +30,7 @@ pub enum DiceType {
   #[strum(serialize = "p")]
   D100,
   #[strum(serialize = "c")]
-  D(usize)
+  D(isize)
 }
 
 impl DiceType {
@@ -85,7 +86,7 @@ impl ThrowerConfig {
         ).and_then(|dice_type| {
           if let DiceType::D(_) = dice_type {
             if tmp_vec.len() < 4 { Err(CfgParseError::Split) } else {
-              tmp_vec[3].parse::<usize>()
+              tmp_vec[3].parse::<isize>()
                 .map_err(|_| CfgParseError::DiceCustom)
                 .map(|cv| DiceType::D(cv))
             }
@@ -107,15 +108,12 @@ impl ThrowerConfig {
           else { Err(CfgParseError::Selected) }
         }) {
           Ok(cfg) => Ok(cfg),
-          Err(_err) => {
-            //log::info!("cfg parse error: {}", err);
-            Err(())
-          }
+          Err(_err) => Err(())
         }
     }
   }
 
-  pub fn max(dice_type: &DiceType) -> usize {
+  pub fn max(dice_type: &DiceType) -> isize {
     match dice_type {
       DiceType::D4 => 4,
       DiceType::D6 => 6,
@@ -146,18 +144,22 @@ impl ThrowerConfig {
   }
 
   pub fn roll(&self) -> HistoLine {
-    //
-    // TODO
-    //
     let mut rng = thread_rng();
-    //
-    //let total = 5; // TODO: ce n'est clairement pas ça Xb
-    let total = rng.gen_range(1..=Self::max(&self.dice_type));
-    //
-    //HistoResult::create(rng.gen_range(1..=6))
-    //
-    HistoLine::create(self.name.clone(), self.placeholder(), total)
-    //
+    let (results, mut total) = (0..self.nb_dice).fold((Vec::default(), 0),
+      |(mut results, mut total), _| {
+        let res: isize = rng.gen_range(1..=Self::max(&self.dice_type));
+        results.push(res);
+        total += res;
+        (results,
+          if self.method == DiceMethod::Each { total + self.modifier }
+          else { total }
+        )
+      }
+    );
+    if self.method == DiceMethod::Total { total += self.modifier; }
+    HistoLine::create(
+      self.method.clone(), self.modifier, self.name.clone(),
+      self.placeholder(), results, total)
   }
 
   pub fn to_string(&self) -> String {

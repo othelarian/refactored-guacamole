@@ -28,7 +28,7 @@ pub enum ThrowerMsg {
   ToggleSelectRoll(bool),
   UpdateInput(InputUpdated, isize),
   UpdateName(String),
-  UpdateRes(usize),
+  UpdateRes(isize),
   UpdateSelbox(bool)
 }
 
@@ -42,7 +42,7 @@ pub struct Thrower {
   init: bool,
   ref_result: NodeRef,
   ref_select_roll: NodeRef,
-  result: Option<usize>,
+  result: Option<isize>,
   store: Box<dyn Bridge<Store>>
 }
 
@@ -124,7 +124,7 @@ impl Component for Thrower {
         match inp {
           InputUpdated::Modifier => config.modifier = new_val,
           InputUpdated::NbCustom =>
-            config.dice_type = DiceType::D(new_val as usize),
+            config.dice_type = DiceType::D(new_val),
           InputUpdated::NbDice => config.nb_dice = new_val as usize
         }
         self.store.send(StoreInput::UpdateConfig(index));

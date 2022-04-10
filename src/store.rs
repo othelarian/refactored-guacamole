@@ -40,7 +40,7 @@ pub enum StoreOutput {
   InitList(IdsOrder, ThrowerIds, SelboxState),
   InitThrower(ConfigHash),
   ToggleSelCheck(bool),
-  UpdateRollRes(usize),
+  UpdateRollRes(isize),
   UpdateSelbox(SelboxState),
   UpdateThrowerList
 }
@@ -269,9 +269,11 @@ impl Agent for Store {
         self.link.send_message(StoreMsg::UpdateNames);
       }
       StoreInput::ThrowAll => {
+        let throwers = self.throwers.borrow();
         let thrower_ids = self.thrower_ids.borrow();
-        let results: Vec<HistoLine> = self.throwers.borrow().iter()
-          .map(|(key, thrower)| {
+        let results: Vec<HistoLine> = self.order.borrow().iter()
+          .map(|key| {
+            let thrower = throwers.get(&key).unwrap();
             let res = thrower.roll();
             if let Some(id) = &thrower_ids.get(key).unwrap() {
               self.link.respond(*id, StoreOutput::UpdateRollRes(res.total));
@@ -284,9 +286,11 @@ impl Agent for Store {
         }
       }
       StoreInput::ThrowSelected => {
+        let throwers = self.throwers.borrow();
         let thrower_ids = self.thrower_ids.borrow();
-        let results: Vec<HistoLine> = self.throwers.borrow().iter()
-          .fold(Vec::default(), |mut acc, (key, thrower)| {
+        let results: Vec<HistoLine> = self.order.borrow().iter()
+          .fold(Vec::default(), |mut acc, key| {
+            let thrower = throwers.get(&key).unwrap();
             if thrower.selected {
               let res = thrower.roll();
               if let Some(id) = &thrower_ids.get(key).unwrap() {
