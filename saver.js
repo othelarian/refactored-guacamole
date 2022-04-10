@@ -43,7 +43,7 @@ export class GuacaConfig {
   has_config() {
     if (this.url) {
       let cfgs = location.hash.substring(1).split("=");
-      return {"has": cfgs.length > 0, "url": true, "cfgs": cfgs};
+      return {"has": cfgs[0] != "", "url": true, "cfgs": cfgs};
     } else {
       let cfgs = localStorage.getItem("cfgs").split("=");
       let names = localStorage.getItem("names");
@@ -51,11 +51,11 @@ export class GuacaConfig {
         this.url = true;
         location.hash = cfgs;
         localStorage.clear();
-        return {"has": cfgs > 0, "url": true, "cfgs": cfgs};
+        return {"has": cfgs[0] != "", "url": true, "cfgs": cfgs};
       } else {
         this.history = JSON.parse(localStorage.getItem("history"));
         return {
-          "has": cfgs.length > 0, "url": false,
+          "has": cfgs[0] != "", "url": false,
           "cfgs": cfgs, "names": JSON.parse(names)
         };
       }

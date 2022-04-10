@@ -142,8 +142,9 @@ impl Agent for Store {
           JsValue::from_serde(&vec!(&cfgs)).unwrap());
         if !storage_config.isurl() {
           storage_config.update_names(
-            JsValue::from_serde(&Vec::<String>::default()).unwrap());
+            JsValue::from_serde(&vec!(String::from(""))).unwrap());
         }
+        counter = 1;
         (cfgs, vec!(String::default()))
       }
     };
