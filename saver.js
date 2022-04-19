@@ -4,7 +4,7 @@ export class GuacaConfig {
   constructor() {
     this.url = false;
     this.history = [];
-    if (try_storage() && localStorage.length == 0) { this.url = true; }
+    if (try_storage() && !validate_storage()) { this.url = true; }
   }
 
   // config's config interface
@@ -17,7 +17,7 @@ export class GuacaConfig {
       if (this.url) {
         if (try_storage()) {
           this.url = false;
-          localStorage.setItem("cfgs", location.hash.substring(1));
+          localStorage.setItem("guaca_cfgs", location.hash.substring(1));
           location.hash = "";
           return true;
         } else { return false; }
@@ -25,10 +25,10 @@ export class GuacaConfig {
     } else {
       if (this.url) { return true; }
       else {
+        let cfgs = localStorage.getItem("guaca_cfgs");
+        this.clear_config();
         this.url = true;
-        let cfgs = localStorage.getItem("cfgs");
         location.hash = cfgs;
-        localStorage.clear();
         return true;
       }
     }
@@ -37,7 +37,11 @@ export class GuacaConfig {
   // config interface
 
   clear_config() {
-    if (this.url) { location.hash = ""; } else { localStorage.clear(); }
+    if (this.url) { location.hash = ""; } else {
+      localStorage.removeItem("guaca_cfgs");
+      localStorage.removeItem("guaca_names");
+      localStorage.removeItem("guaca_history");
+    }
   }
 
   has_config() {
@@ -45,15 +49,15 @@ export class GuacaConfig {
       let cfgs = location.hash.substring(1).split("=");
       return {"has": cfgs[0] != "", "url": true, "cfgs": cfgs};
     } else {
-      let cfgs = localStorage.getItem("cfgs").split("=");
-      let names = localStorage.getItem("names");
+      let cfgs = localStorage.getItem("guaca_cfgs").split("=");
+      let names = localStorage.getItem("guaca_names");
       if (names == null) {
+        this.clear_config();
         this.url = true;
         location.hash = cfgs;
-        localStorage.clear();
         return {"has": cfgs[0] != "", "url": true, "cfgs": cfgs};
       } else {
-        this.history = JSON.parse(localStorage.getItem("history"));
+        this.history = JSON.parse(localStorage.getItem("guaca_history"));
         return {
           "has": cfgs[0] != "", "url": false,
           "cfgs": cfgs, "names": JSON.parse(names)
@@ -64,12 +68,12 @@ export class GuacaConfig {
 
   update_config(cfgs) {
     if (this.url) { location.hash = cfgs.join("="); } else {
-      localStorage.setItem("cfgs", cfgs.join("="));
+      localStorage.setItem("guaca_cfgs", cfgs.join("="));
     }
   }
 
   update_names(names) {
-    if (!this.url) { localStorage.setItem("names", JSON.stringify(names)); }
+    if (!this.url) { localStorage.setItem("guaca_names", JSON.stringify(names)); }
   }
 
   // history interface
@@ -82,13 +86,13 @@ export class GuacaConfig {
 
   get_history() {
     if (!this.url) {
-      this.history = JSON.parse(localStorage.getItem("history")); }
+      this.history = JSON.parse(localStorage.getItem("guaca_history")); }
     return this.history;
   }
 
   update_history() {
     if (!this.url) {
-      localStorage.setItem("history", JSON.stringify(this.history)); }
+      localStorage.setItem("guaca_history", JSON.stringify(this.history)); }
   }
 
   remove_history(id) { this.history.splice(id, 1); this.update_history(); }
@@ -102,4 +106,12 @@ function try_storage() {
     localStorage.removeItem(tryit);
     return true;
   } catch(e) { return false; }
+}
+
+function validate_storage() {
+  return (
+    localStorage.hasOwnProperty("guaca_cfgs")
+    && localStorage.hasOwnProperty("guaca_names")
+    && localStorage.hasOwnProperty("guaca_history")
+  );
 }
