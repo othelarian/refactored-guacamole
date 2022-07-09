@@ -269,9 +269,9 @@ impl Thrower {
         None => ThrowerMsg::NoOp
       }
     });
-    let selects: Html = DiceType::iter().map(|tp| html! {
-      <option value={tp.to_string()} selected={curr_type == tp}>
-        {tp.to_name()}</option>
+    let selects: Html = DiceType::iter().map(|tp| {
+      let sel = curr_type.to_string() == tp.to_string();
+      html! { <option value={tp.to_string()} selected={sel}>{tp.to_name()}</option> }
     }).collect();
     html! {
       <select onchange={select_type_cb}>{selects}</select>
