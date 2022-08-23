@@ -34,6 +34,12 @@ export class GuacaConfig {
     }
   }
 
+  copy_url() {
+    let cfg = location.href + ((this.url)? "" : localStorage.getItem("guaca_cfgs"));
+    navigator.clipboard.writeText(cfg);
+    window.alert("Url de configuration copiée !");
+  }
+
   // config interface
 
   clear_config() {

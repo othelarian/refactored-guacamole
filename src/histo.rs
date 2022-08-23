@@ -131,7 +131,6 @@ pub fn historic() -> Html {
   let init = use_state(|| false);
   {
     let reducer = reducer.clone();
-    let init = init.clone();
     let bridge = use_bridge::<crate::store::Store, _>(move |out| {
       match out {
         StoreOutput::HistoryAction(action) => reducer.dispatch(action),

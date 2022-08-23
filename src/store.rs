@@ -17,13 +17,16 @@ pub enum StoreMsg {
 pub enum StoreInput {
   AddHistory(HistoResult),
   ClearThrowers,
+  CopyUrl,
   DeleteThrower(usize),
   GetConfig,
   InitList,
   RegisterHistory,
   RegisterThrower(usize),
+  RegisterVeil,
   SelectToggleAll(bool),
   ToggleConfig(bool),
+  ToggleVeil(bool),
   ThrowAdd,
   ThrowAll,
   ThrowSelected,
@@ -40,6 +43,7 @@ pub enum StoreOutput {
   InitList(IdsOrder, ThrowerIds, SelboxState),
   InitThrower(ConfigHash),
   ToggleSelCheck(bool),
+  ToggleVeil(bool),
   UpdateRollRes(isize),
   UpdateSelbox(SelboxState),
   UpdateThrowerList
@@ -81,6 +85,7 @@ pub struct Store {
   counter: usize,
   id_history: Option<HandlerId>,
   id_list: Option<HandlerId>,
+  id_veil: Option<HandlerId>,
   link: AgentLink<Self>,
   names: Vec<String>,
   order: IdsOrder,
@@ -151,6 +156,7 @@ impl Agent for Store {
     Self {
       id_history: None,
       id_list: None,
+      id_veil: None,
       counter, cfgs, link, names, order, storage_config, throwers, thrower_ids
     }
   }
@@ -200,6 +206,7 @@ impl Agent for Store {
         if let Some(id) = &self.id_list {
           self.link.respond(*id, StoreOutput::UpdateThrowerList); }
       }
+      StoreInput::CopyUrl => self.storage_config.copy_url(),
       StoreInput::DeleteThrower(key) => {
         self.throwers.borrow_mut().remove(&key);
         self.thrower_ids.borrow_mut().remove(&key);
@@ -234,6 +241,7 @@ impl Agent for Store {
         self.thrower_ids.borrow_mut().insert(key, Some(id));
         self.link.respond(id, StoreOutput::InitThrower(self.throwers.clone()));
       }
+      StoreInput::RegisterVeil => self.id_veil = Some(id),
       StoreInput::SelectToggleAll(state) => {
         let mut throwers = self.throwers.borrow_mut();
         let thrower_ids = self.thrower_ids.borrow();
@@ -257,6 +265,11 @@ impl Agent for Store {
             }
           }
         } else { self.link.respond(id, StoreOutput::ConfigLSAfail); }
+      }
+      StoreInput::ToggleVeil(choice) => {
+        if let Some(id) = &self.id_veil {
+          self.link.respond(*id, StoreOutput::ToggleVeil(choice));
+        }
       }
       StoreInput::ThrowAdd => {
         let new_thrower = ThrowerConfig::default();

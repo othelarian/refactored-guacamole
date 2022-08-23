@@ -73,6 +73,42 @@ fn store_config() -> Html {
   }
 }
 
+#[function_component(Veil)]
+fn veil() -> Html {
+  let init = use_state(|| false);
+  let show = use_state(|| false);
+  let store = {
+    let show = show.clone();
+    use_bridge::<Store, _>(move |out| match out {
+      StoreOutput::ToggleVeil(choice) => show.set(choice),
+      _ => ()
+    })
+  };
+  if !*init { store.send(StoreInput::RegisterVeil); init.set(true); }
+  let visibility = if *show { "display:block" } else { "display:none" };
+  let togback_cb = {
+    let show = show.clone();
+    Callback::from(move |_| show.set(false))
+  };
+  html! {
+    <div class="guaca-veil" style={visibility}>
+      <div class="guaca-back" onclick={togback_cb} />
+      <div class="guaca-body">
+        <h2>{"Options"}</h2>
+        <StoreConfig />
+        <hr />
+        <div class="guaca-center">
+          {"Si vous voulez voir le code, "}
+          <a href="https://github.com/othelarian/refactored-guacamole" target="blank">
+            {"c'est ici"}</a>
+          <br />
+          {format!("version de l'app : {}", env!("CARGO_PKG_VERSION"))}
+        </div>
+      </div>
+    </div>
+  }
+}
+
 #[function_component(App)]
 fn app() -> Html {
   // preparation
@@ -85,6 +121,14 @@ fn app() -> Html {
   let thrower_clear_cb = {
     let store = store.clone();
     Callback::from(move |_| store.send(StoreInput::ClearThrowers))
+  };
+  let call_veil_cb = {
+    let store = store.clone();
+    Callback::from(move |_| store.send(StoreInput::ToggleVeil(true)))
+  };
+  let copy_cb = {
+    let store = store.clone();
+    Callback::from(move |_| store.send(StoreInput::CopyUrl))
   };
   // rendering
   html! {
@@ -103,12 +147,16 @@ fn app() -> Html {
           </div>
         </div>
         <div class="guaca-block guaca-histo">
-          <StoreConfig />
+          <div class="guaca-navbar">
+            <button onclick={call_veil_cb}>{"options"}</button>
+            <button onclick={copy_cb}>{"copier la config"}</button>
+          </div>
           <hr />
           <h3>{"Historique"}</h3>
           <Historic />
         </div>
       </div>
+      <Veil />
     </>
   }
 }

@@ -6,7 +6,7 @@ extern "C" {
   // get the timestamp
   pub fn get_timestamp() -> String;
 
-  // GuacaConfig  
+  // GuacaConfig
   pub type GuacaConfig;
 
   // config's config interface
@@ -23,6 +23,9 @@ extern "C" {
   #[wasm_bindgen(method)]
   pub fn toggle_ls(this: &GuacaConfig, toggle: bool) -> bool;
 
+  #[wasm_bindgen(method)]
+  pub fn copy_url(this: &GuacaConfig);
+
   // configs interface
 
   #[wasm_bindgen(method)]
@@ -32,7 +35,7 @@ extern "C" {
   pub fn update_config(this: &GuacaConfig, cfgs: JsValue);
 
   #[wasm_bindgen(method)]
-  pub fn update_names(this: &GuacaConfig, names: JsValue);  
+  pub fn update_names(this: &GuacaConfig, names: JsValue);
 
   #[wasm_bindgen(method)]
   pub fn clear_config(this: &GuacaConfig);
