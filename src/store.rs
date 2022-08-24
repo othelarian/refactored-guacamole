@@ -7,8 +7,10 @@ use yew_agent::{Agent, AgentLink, Context, HandlerId};
 use crate::histo::{HistoAction, HistoLine, HistoResult};
 use crate::saver::*;
 use crate::throwers::ThrowerConfig;
+use crate::veil::VeilShow;
 
 pub enum StoreMsg {
+  InitConfig,
   UpdateConfig,
   UpdateList,
   UpdateNames
@@ -26,7 +28,7 @@ pub enum StoreInput {
   RegisterVeil,
   SelectToggleAll(bool),
   ToggleConfig(bool),
-  ToggleVeil(bool),
+  ToggleVeil(bool, VeilShow),
   ThrowAdd,
   ThrowAll,
   ThrowSelected,
@@ -43,7 +45,7 @@ pub enum StoreOutput {
   InitList(IdsOrder, ThrowerIds, SelboxState),
   InitThrower(ConfigHash),
   ToggleSelCheck(bool),
-  ToggleVeil(bool),
+  ToggleVeil(bool, VeilShow),
   UpdateRollRes(isize),
   UpdateSelbox(SelboxState),
   UpdateThrowerList
@@ -101,68 +103,76 @@ impl Agent for Store {
   type Output = StoreOutput;
 
   fn create(link: AgentLink<Self>) -> Self {
-    let storage_config = Rc::new(GuacaConfig::new());
-    let order = create_ids_order();
-    let throwers = create_config_hash();
-    let thrower_ids = create_thrower_ids();
-    let mut counter = 0;
-    let (cfgs, names) = match parse_init(storage_config.has_config()) {
-      Some((isurl, mut cfgs, names)) => {
-        let mut names = if isurl { Vec::default() } else { names.unwrap() };
-        let mut throwers = throwers.borrow_mut();
-        let mut thrower_ids = thrower_ids.borrow_mut();
-        let mut order = order.borrow_mut();
-        let mut to_remove = Vec::default();
-        for (idx, cfg) in cfgs.iter().enumerate() {
-          match ThrowerConfig::from_string(cfg) {
-            Ok(mut thrower) => {
-              if isurl { names.push(String::default()); }
-              else { thrower.name = names[idx].clone(); }
-              throwers.insert(idx, thrower);
-              thrower_ids.insert(idx, None);
-              order.push(idx);
-              counter += 1;
-            }
-            Err(_) => to_remove.push(idx)
-          }
-        }
-        if to_remove.len() > 0 {
-          for idx in to_remove.iter().rev() {
-            cfgs.remove(idx.clone());
-            if !isurl { names.remove(idx.clone()); }
-          }
-          storage_config.update_config(JsValue::from_serde(&cfgs).unwrap());
-          if !isurl {
-            storage_config.update_names(JsValue::from_serde(&names).unwrap()); }
-        }
-        (cfgs, names)
-      }
-      None => {
-        order.borrow_mut().push(0);
-        let def_thrower = ThrowerConfig::default();
-        let cfgs = vec!(def_thrower.to_string());
-        throwers.borrow_mut().insert(0, def_thrower);
-        thrower_ids.borrow_mut().insert(0, None);
-        storage_config.update_config(
-          JsValue::from_serde(&vec!(&cfgs)).unwrap());
-        if !storage_config.isurl() {
-          storage_config.update_names(
-            JsValue::from_serde(&vec!(String::from(""))).unwrap());
-        }
-        counter = 1;
-        (cfgs, vec!(String::default()))
-      }
-    };
     Self {
       id_history: None,
       id_list: None,
       id_veil: None,
-      counter, cfgs, link, names, order, storage_config, throwers, thrower_ids
+      counter: 0,
+      cfgs: Vec::default(),
+      names: Vec::default(),
+      order: create_ids_order(),
+      throwers: create_config_hash(),
+      thrower_ids: create_thrower_ids(),
+      storage_config: Rc::new(GuacaConfig::new()),
+      link
     }
   }
 
   fn update(&mut self, msg: Self::Message) {
     match msg {
+      StoreMsg::InitConfig => {
+        let (cnt, cfgs, names) = match parse_init(self.storage_config.has_config()) {
+          Some((isurl, mut cfgs, names)) => {
+            let mut counter = 0;
+            let mut names = if isurl { Vec::default() } else { names.unwrap() };
+            let mut throwers = self.throwers.borrow_mut();
+            let mut thrower_ids = self.thrower_ids.borrow_mut();
+            let mut order = self.order.borrow_mut();
+            let mut to_remove = Vec::default();
+            for (idx, cfg) in cfgs.iter().enumerate() {
+              match ThrowerConfig::from_string(cfg) {
+                Ok(mut thrower) => {
+                  if isurl { names.push(String::default()); }
+                  else { thrower.name = names[idx].clone(); }
+                  throwers.insert(idx, thrower);
+                  thrower_ids.insert(idx, None);
+                  order.push(idx);
+                  counter += 1;
+                }
+                Err(_) => to_remove.push(idx)
+              }
+            }
+            if to_remove.len() > 0 {
+              for idx in to_remove.iter().rev() {
+                cfgs.remove(idx.clone());
+                if !isurl { names.remove(idx.clone()); }
+              }
+              self.storage_config.update_config(JsValue::from_serde(&cfgs).unwrap());
+              if !isurl {
+                self.storage_config.update_names(JsValue::from_serde(&names).unwrap());
+              }
+            }
+            (counter, cfgs, names)
+          }
+          None => {
+            self.order.borrow_mut().push(0);
+            let def_thrower = ThrowerConfig::default();
+            let cfgs = vec!(def_thrower.to_string());
+            self.throwers.borrow_mut().insert(0, def_thrower);
+            self.thrower_ids.borrow_mut().insert(0, None);
+            self.storage_config.update_config(
+              JsValue::from_serde(&vec!(&cfgs)).unwrap());
+            if !self.storage_config.isurl() {
+              self.storage_config.update_names(
+                JsValue::from_serde(&vec!(String::from(""))).unwrap());
+            }
+            (1, cfgs, vec!(String::default()))
+          }
+        };
+        self.counter = cnt;
+        self.cfgs = cfgs;
+        self.names = names;
+      }
       StoreMsg::UpdateConfig => {
         self.storage_config.update_config(
           JsValue::from_serde(&self.cfgs).unwrap());
@@ -241,7 +251,12 @@ impl Agent for Store {
         self.thrower_ids.borrow_mut().insert(key, Some(id));
         self.link.respond(id, StoreOutput::InitThrower(self.throwers.clone()));
       }
-      StoreInput::RegisterVeil => self.id_veil = Some(id),
+      StoreInput::RegisterVeil => {
+        self.id_veil = Some(id);
+        if self.storage_config.check_db_cfg() {
+          self.link.respond(id, StoreOutput::ToggleVeil(true, VeilShow::DoubleCfg));
+        } else { self.link.send_message(StoreMsg::InitConfig); }
+      }
       StoreInput::SelectToggleAll(state) => {
         let mut throwers = self.throwers.borrow_mut();
         let thrower_ids = self.thrower_ids.borrow();
@@ -266,9 +281,9 @@ impl Agent for Store {
           }
         } else { self.link.respond(id, StoreOutput::ConfigLSAfail); }
       }
-      StoreInput::ToggleVeil(choice) => {
+      StoreInput::ToggleVeil(choice, to_show) => {
         if let Some(id) = &self.id_veil {
-          self.link.respond(*id, StoreOutput::ToggleVeil(choice));
+          self.link.respond(*id, StoreOutput::ToggleVeil(choice, to_show));
         }
       }
       StoreInput::ThrowAdd => {

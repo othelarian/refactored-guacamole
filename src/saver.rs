@@ -40,6 +40,9 @@ extern "C" {
   #[wasm_bindgen(method)]
   pub fn clear_config(this: &GuacaConfig);
 
+  #[wasm_bindgen(method)]
+  pub fn check_db_cfg(this: &GuacaConfig) -> bool;
+
   // history interface
 
   #[wasm_bindgen(method)]
@@ -53,6 +56,9 @@ extern "C" {
 
   #[wasm_bindgen(method)]
   pub fn get_history(this: &GuacaConfig) -> JsValue;
+
+  #[wasm_bindgen(method)]
+  pub fn has_history(this: &GuacaConfig) -> bool;
 
   #[wasm_bindgen(method)]
   pub fn remove_history(this: &GuacaConfig, idx: usize);

@@ -2,9 +2,8 @@ export function get_timestamp() { return new Date().toLocaleString(); }
 
 export class GuacaConfig {
   constructor() {
-    this.url = false;
     this.history = [];
-    if (try_storage() && !validate_storage()) { this.url = true; }
+    this.url = (try_storage())? ((validate_storage())? false : true) : true;
   }
 
   // config's config interface
@@ -82,6 +81,15 @@ export class GuacaConfig {
     if (!this.url) { localStorage.setItem("guaca_names", JSON.stringify(names)); }
   }
 
+  check_db_cfg() {
+    if (try_storage()) {
+      let url_cfgs = location.hash.substring(1).split("=")[0] != "";
+      let ls_cfgs = localStorage.getItem("guaca_cfgs");
+      ls_cfgs = (ls_cfgs == null)? false : ls_cfgs.split("=")[0] != "";
+      return url_cfgs && ls_cfgs;
+    } else { return false; }
+  }
+
   // history interface
 
   add_history(new_res) { this.history.push(new_res); this.update_history(); }
@@ -94,6 +102,10 @@ export class GuacaConfig {
     if (!this.url) {
       this.history = JSON.parse(localStorage.getItem("guaca_history")); }
     return this.history;
+  }
+
+  has_history() {
+    return (try_storage() && localStorage.hasOwnProperty("guaca_history"))? true : false;
   }
 
   update_history() {

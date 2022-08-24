@@ -116,7 +116,7 @@ impl Reducible for HistoState {
         history.remove(id);
       }
       HistoAction::SetGuacaLink(guaca_config) => {
-        if !guaca_config.isurl() {
+        if guaca_config.has_history() {
           history = guaca_config.get_history().into_serde().unwrap(); }
         ngc = Some(guaca_config)
       }
@@ -139,10 +139,11 @@ pub fn historic() -> Html {
     });
     if !*init { bridge.send(StoreInput::RegisterHistory); init.set(true); }
   }
+  let histo_len = reducer.history.len();
   let history: Html = reducer.history.iter().rev().enumerate().map(|(id, res)| {
     let delete_res_cb = {
       let reducer = reducer.clone();
-      Callback::from(move |_| reducer.dispatch(HistoAction::Remove(id)))
+      Callback::from(move |_| reducer.dispatch(HistoAction::Remove(histo_len - id - 1)))
     };
     html! {
       <div class="guaca-line">
