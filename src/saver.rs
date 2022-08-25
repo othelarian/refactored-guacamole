@@ -26,6 +26,15 @@ extern "C" {
   #[wasm_bindgen(method)]
   pub fn copy_url(this: &GuacaConfig);
 
+  #[wasm_bindgen(method)]
+  pub fn clear_url(this: &GuacaConfig);
+
+  #[wasm_bindgen(method)]
+  pub fn merge_url(this: &GuacaConfig);
+
+  #[wasm_bindgen(method)]
+  pub fn set_url(this: &GuacaConfig);
+
   // configs interface
 
   #[wasm_bindgen(method)]

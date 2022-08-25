@@ -134,7 +134,7 @@ impl Component for ThrowerList {
           <div class="guaca-result">
             <button onclick={roll_all_cb}>{"Tout lancer"}</button>
           </div>
-        } 
+        }
       </div>
     }
   }

@@ -7,7 +7,7 @@ use yew_agent::{Agent, AgentLink, Context, HandlerId};
 use crate::histo::{HistoAction, HistoLine, HistoResult};
 use crate::saver::*;
 use crate::throwers::ThrowerConfig;
-use crate::veil::VeilShow;
+use crate::veil::{DbCfgAction, VeilShow};
 
 pub enum StoreMsg {
   InitConfig,
@@ -20,6 +20,7 @@ pub enum StoreInput {
   AddHistory(HistoResult),
   ClearThrowers,
   CopyUrl,
+  DbCfgChoice(DbCfgAction),
   DeleteThrower(usize),
   GetConfig,
   InitList,
@@ -172,6 +173,8 @@ impl Agent for Store {
         self.counter = cnt;
         self.cfgs = cfgs;
         self.names = names;
+        if let Some(id) = &self.id_list {
+          self.link.respond(*id, StoreOutput::UpdateThrowerList); }
       }
       StoreMsg::UpdateConfig => {
         self.storage_config.update_config(
@@ -217,6 +220,16 @@ impl Agent for Store {
           self.link.respond(*id, StoreOutput::UpdateThrowerList); }
       }
       StoreInput::CopyUrl => self.storage_config.copy_url(),
+      StoreInput::DbCfgChoice(action) => {
+        match action {
+          DbCfgAction::Both => self.storage_config.merge_url(),
+          DbCfgAction::LsOnly => self.storage_config.clear_url(),
+          DbCfgAction::UrlOnly => self.storage_config.set_url(),
+        }
+        self.link.send_message(StoreMsg::InitConfig);
+        if let Some(id) = &self.id_veil {
+          self.link.respond(*id, StoreOutput::ToggleVeil(false, VeilShow::Options)); }
+      }
       StoreInput::DeleteThrower(key) => {
         self.throwers.borrow_mut().remove(&key);
         self.thrower_ids.borrow_mut().remove(&key);

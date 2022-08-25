@@ -2,9 +2,8 @@ export function get_timestamp() { return new Date().toLocaleString(); }
 
 export class GuacaConfig {
   constructor() {
-    this.url = false;
     this.history = [];
-    if (try_storage() && !validate_storage()) { this.url = true; }
+    this.url = (try_storage())? ((validate_storage())? false : true) : true;
   }
 
   // config's config interface
@@ -38,6 +37,23 @@ export class GuacaConfig {
     let cfg = location.href + ((this.url)? "" : localStorage.getItem("guaca_cfgs"));
     navigator.clipboard.writeText(cfg);
     window.alert("Url de configuration copiée !");
+  }
+
+  clear_url() { location.hash = ""; }
+
+  merge_url() {
+    let url_cfgs = location.hash.substring(1);
+    localStorage.setItem("guaca_cfgs", localStorage.getItem("guaca_cfgs") + "=" + url_cfgs);
+    let new_names = Array(url_cfgs.split("=").length).fill("");
+    new_names = JSON.stringify(JSON.parse(localStorage.getItem("guaca_names")).concat(new_names));
+    localStorage.setItem("guaca_names", new_names);
+    this.clear_url();
+  }
+
+  set_url() {
+    localStorage.setItem("guaca_cfgs", location.hash.substring(1));
+    localStorage.setItem("guaca_names", '[""]');
+    this.clear_url();
   }
 
   // config interface
@@ -82,6 +98,15 @@ export class GuacaConfig {
     if (!this.url) { localStorage.setItem("guaca_names", JSON.stringify(names)); }
   }
 
+  check_db_cfg() {
+    if (try_storage()) {
+      let url_cfgs = location.hash.substring(1).split("=")[0] != "";
+      let ls_cfgs = localStorage.getItem("guaca_cfgs");
+      ls_cfgs = (ls_cfgs == null)? false : ls_cfgs.split("=")[0] != "";
+      return url_cfgs && ls_cfgs;
+    } else { return false; }
+  }
+
   // history interface
 
   add_history(new_res) { this.history.push(new_res); this.update_history(); }
@@ -94,6 +119,10 @@ export class GuacaConfig {
     if (!this.url) {
       this.history = JSON.parse(localStorage.getItem("guaca_history")); }
     return this.history;
+  }
+
+  has_history() {
+    return (try_storage() && localStorage.hasOwnProperty("guaca_history"))? true : false;
   }
 
   update_history() {

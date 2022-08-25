@@ -67,6 +67,12 @@ fn store_config() -> Html {
   }
 }
 
+pub enum DbCfgAction {
+  Both,
+  LsOnly,
+  UrlOnly
+}
+
 pub enum VeilShow {
   DoubleCfg,
   Options
@@ -102,29 +108,16 @@ pub fn veil() -> Html {
   let body = match *showing {
     VeilShow::DoubleCfg => {
       let only_ls_cb = {
-        //
-        // TODO
-        //
-        Callback::from(move |_| log::info!("not ready!"))
-        //
+        let store = store.clone();
+        Callback::from(move |_| store.send(StoreInput::DbCfgChoice(DbCfgAction::LsOnly)))
       };
-
-      //
       let only_url_cb = {
-        //
-        // TODO
-        //
-        Callback::from(move |_| log::info!("not ready!"))
-        //
+        let store = store.clone();
+        Callback::from(move |_| store.send(StoreInput::DbCfgChoice(DbCfgAction::UrlOnly)))
       };
-
-      //
       let both_cb = {
-        //
-        // TODO
-        //
-        Callback::from(move |_| log::info!("not ready!"))
-        //
+        let store = store.clone();
+        Callback::from(move |_| store.send(StoreInput::DbCfgChoice(DbCfgAction::Both)))
       };
       html! {
         <>
