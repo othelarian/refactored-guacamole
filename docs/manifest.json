@@ -4,7 +4,7 @@
   "display": "standalone",
   "description": "diceroller alternative en français et avec sauvegarde via localstorage",
   "lang": "fr",
-  "start_url": "/",
+  "start_url": "index.html",
   "background_color": "white",
   "theme_color": "#fee",
   "icons": [
