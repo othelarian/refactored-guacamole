@@ -4,6 +4,9 @@ export class GuacaConfig {
   constructor() {
     this.history = [];
     this.url = (try_storage())? ((validate_storage())? false : true) : true;
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("service-worker.js");
+    }
   }
 
   // config's config interface

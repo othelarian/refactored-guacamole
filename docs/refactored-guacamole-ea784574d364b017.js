@@ -275,7 +275,7 @@ async function load(module, imports) {
 
 async function init(input) {
     if (typeof input === 'undefined') {
-        input = new URL('refactored-guacamole-e98ef011fc0d7e2e_bg.wasm', import.meta.url);
+        input = new URL('refactored-guacamole-ea784574d364b017_bg.wasm', import.meta.url);
     }
     const imports = {};
     imports.wbg = {};

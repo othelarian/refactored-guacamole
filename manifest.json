@@ -1,0 +1,17 @@
+{
+  "name": "refactored-guacamole",
+  "short-name": "guaca",
+  "display": "standalone",
+  "description": "diceroller alternative en français et avec sauvegarde via localstorage",
+  "lang": "fr",
+  "start_url": "/",
+  "background_color": "white",
+  "theme_color": "#fee",
+  "icons": [
+    {"src": "icons/guaca_64.png", "sizes": "64x64"},
+    {"src": "icons/guaca_128.png", "sizes": "128x128"},
+    {"src": "icons/guaca_apple.png", "sizes": "192x192"},
+    {"src": "icons/guaca_256.png", "sizes": "256x256", "purpose": "maskable"},
+    {"src": "icons/guaca_512.png", "sizes": "512x512", "purpose": "maskable"}
+  ]
+}
